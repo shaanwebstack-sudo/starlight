@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import JKPihal from '../../public/jk pihal sir.jpeg';
 import {
   Card,
   CardContent,
@@ -316,9 +315,10 @@ export default function AboutPage() {
                   <div className="absolute -inset-4 bg-white/20 rounded-full blur-2xl" />
                   <div className="relative w-64 h-64 sm:w-72 sm:h-72 rounded-3xl overflow-hidden border-4 border-white/30 shadow-2xl">
                     <Image
-                      src={JKPihal}
+                      src="https://images.pexels.com/photos/15866461/pexels-photo-15866461.jpeg?auto=compress&cs=tinysrgb&h=650&w=940"
                       alt="Mr. J.K Pihal - Founder"
-                      fill
+                      width={280}
+                      height={280}
                       className="object-cover"
                     />
                   </div>
