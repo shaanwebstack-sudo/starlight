@@ -1,0 +1,2666 @@
+'use client';
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { createClient } from '@/lib/supabase/client';
+import { Course, Lead, Notice, Admission, StudentProfile } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/lib/auth-context';
+import { ImageUpload } from '@/components/image-upload';
+
+import { BlogCMS } from '@/components/admin/blog/blog-cms';
+import Image from 'next/image';
+import {
+  Loader as Loader2,
+  Trash2,
+  CreditCard as Edit2,
+  GraduationCap,
+  LogOut,
+  Users,
+  FileText,
+  Bell,
+  BookOpen,
+  ClipboardList,
+  Mail,
+  ImageIcon,
+  HelpCircle,
+} from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { GalleryUpload } from '@/components/admin/gallery/gallery-upload';
+import { GallerySection } from '@/components/admin/gallery/gallery-section';
+import QuizSection from '@/components/admin/quiz/quiz-section';
+export default function AdminPage() {
+  const router = useRouter();
+  const { user, role, isLoading: authLoading, signOut } = useAuth();
+  const supabase = useRef(createClient()).current;
+  const hasLoadedRef = useRef(false);
+
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [notices, setNotices] = useState<Notice[]>([]);
+  const [students, setStudents] = useState<StudentProfile[]>([]);
+  const [admissions, setAdmissions] = useState<Admission[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingType, setEditingType] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteType, setDeleteType] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('courses');
+  const [studentSearchQuery, setStudentSearchQuery] = useState('');
+  const [studentFilterCourse, setStudentFilterCourse] = useState('all');
+  const [studentFilterClass, setStudentFilterClass] = useState('all');
+  const { toast } = useToast();
+
+  function generateSlug(title: string): string {
+    return title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+  }
+
+  const [courseForm, setCourseForm] = useState({ title: '', description: '', image_url: '', duration: 'Flexible', fee: '', featured: false });
+  const [noticeForm, setNoticeForm] = useState({ title: '', content: '', priority: 'medium', is_active: true });
+ const [studentForm, setStudentForm] = useState({
+  full_name: '',
+  email: '',
+  enrollment_number: '',
+  course: '',
+  phone: '',
+  class_grade: '',
+  address: '',
+  subjects: '',
+});
+// ==================== ADMISSION FORM ====================
+
+const emptyAdmissionForm = {
+  student_name: '',
+  email: '',
+  phone: '',
+  date_of_birth: '',
+  parent_name: '',
+  parent_phone: '',
+  address: '',
+  office_address: '',
+  office_phone_1: '',
+  office_phone_2: '',
+  class: '',
+  previous_qualification: '',
+  course: '',
+  subjects: ['', '', '', ''],
+  school_college: '',
+  hobbies: '',
+  photo_url: '',
+  reference_number: '',
+  message: '',
+  status: 'pending',
+};
+
+const [admissionForm, setAdmissionForm] =
+  useState(emptyAdmissionForm);
+
+const [showAdmissionView, setShowAdmissionView] =
+  useState(false);
+
+const [viewingAdmission, setViewingAdmission] =
+  useState<any | null>(null);
+const [studentStatusFilter, setStudentStatusFilter] =
+  useState<'all' | 'pending' | 'approved'>('all');
+  const [admissionStatusForm, setAdmissionStatusForm] = useState({ id: '', status: 'pending' });
+
+const loadData = useCallback(async () => {
+  setIsLoading(true);
+
+  try {
+    const [
+      coursesRes,
+      leadsRes,
+      noticesRes,
+      studentsRes,
+      admissionsRes,
+    ] = await Promise.all([
+      supabase
+        .from('courses')
+        .select('*')
+        .order('created_at', { ascending: false }),
+
+      supabase
+        .from('leads')
+        .select('*')
+        .order('created_at', { ascending: false }),
+
+      supabase
+        .from('notices')
+        .select('*')
+        .order('created_at', { ascending: false }),
+
+      /*
+       * IMPORTANT
+       *
+       * Registered website students are stored in
+       * student_profiles, NOT students.
+       */
+      (supabase.from('student_profiles') as any)
+        .select('*')
+        .order('created_at', { ascending: false }),
+
+      supabase
+        .from('admissions')
+        .select('*')
+        .order('created_at', { ascending: false }),
+    ]);
+
+    /*
+     * Check individual Supabase errors.
+     */
+    if (coursesRes.error) {
+      console.error(
+        'Courses error:',
+        coursesRes.error
+      );
+    }
+
+    if (leadsRes.error) {
+      console.error(
+        'Leads error:',
+        leadsRes.error
+      );
+    }
+
+    if (noticesRes.error) {
+      console.error(
+        'Notices error:',
+        noticesRes.error
+      );
+    }
+
+    if (studentsRes.error) {
+      console.error(
+        'Student profiles error:',
+        studentsRes.error
+      );
+
+      throw studentsRes.error;
+    }
+
+    if (admissionsRes.error) {
+      console.error(
+        'Admissions error:',
+        admissionsRes.error
+      );
+    }
+
+    /*
+     * Set normal dashboard data.
+     */
+    setCourses(coursesRes.data || []);
+    setLeads(leadsRes.data || []);
+    setNotices(noticesRes.data || []);
+
+    /*
+     * IMPORTANT
+     *
+     * student_profiles contains:
+     *
+     * id
+     * user_id
+     * full_name
+     * email
+     * phone
+     * course
+     * class_grade
+     * enrollment_number
+     * subjects
+     * address
+     * is_approved
+     * created_at
+     * updated_at
+     */
+    setStudents(
+      (studentsRes.data || []) as StudentProfile[]
+    );
+
+    setAdmissions(admissionsRes.data || []);
+  } catch (error) {
+    console.error(
+      'Admin dashboard load error:',
+      error
+    );
+
+    toast({
+      title: 'Error',
+      description:
+        'Failed to load dashboard data.',
+      variant: 'destructive',
+    });
+  } finally {
+    setIsLoading(false);
+  }
+}, [supabase, toast]);
+
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (!user) {
+      router.push('/auth/login');
+      return;
+    }
+
+    if (role && role !== 'admin') {
+      router.push('/student/dashboard');
+      return;
+    }
+
+    if (role === 'admin' && !hasLoadedRef.current) {
+      hasLoadedRef.current = true;
+      loadData();
+    }
+  }, [authLoading, user, role, router, loadData]);
+
+  const handleSubmitCourse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    const slug = generateSlug(courseForm.title);
+    try {
+      if (editingId) {
+        const { error } = await (supabase.from('courses') as any).update({ 
+          title: courseForm.title, 
+          description: courseForm.description, 
+          image_url: courseForm.image_url,
+          slug,
+          duration: courseForm.duration,
+          fee: courseForm.fee,
+          featured: courseForm.featured
+        }).eq('id', editingId);
+        if (error) throw error;
+        toast({ title: 'Success', description: 'Course updated' });
+      } else {
+        const { error } = await (supabase.from('courses') as any).insert([{ 
+          title: courseForm.title, 
+          description: courseForm.description, 
+          image_url: courseForm.image_url,
+          slug,
+          duration: courseForm.duration,
+          fee: courseForm.fee,
+          featured: courseForm.featured
+        }]);
+        if (error) throw error;
+        toast({ title: 'Success', description: 'Course added' });
+      }
+      setCourseForm({ title: '', description: '', image_url: '', duration: 'Flexible', fee: '', featured: false });
+      setEditingId(null);
+      setEditingType(null);
+      loadData();
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to save course', variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmitNotice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      if (editingId) {
+        const { error } = await (supabase.from('notices') as any).update({ title: noticeForm.title, content: noticeForm.content, priority: noticeForm.priority, is_active: noticeForm.is_active }).eq('id', editingId);
+        if (error) throw error;
+        toast({ title: 'Success', description: 'Notice updated' });
+      } else {
+        const { error } = await (supabase.from('notices') as any).insert([{ title: noticeForm.title, content: noticeForm.content, priority: noticeForm.priority, is_active: noticeForm.is_active }]);
+        if (error) throw error;
+        toast({ title: 'Success', description: 'Notice added' });
+      }
+      setNoticeForm({ title: '', content: '', priority: 'medium', is_active: true });
+      setEditingId(null);
+      setEditingType(null);
+      loadData();
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to save notice', variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+const handleApproveStudent = async (studentId: string) => {
+  setIsSubmitting(true);
+
+  try {
+const { error } = await (supabase.from('student_profiles') as any)
+  .update({
+    is_approved: true,
+    updated_at: new Date().toISOString(),
+  })
+  .eq('id', studentId);
+
+    if (error) throw error;
+
+    toast({
+      title: 'Student Approved',
+      description: 'The student can now access quizzes and assessments.',
+    });
+
+    await loadData();
+  } catch (error) {
+    console.error(error);
+
+    toast({
+      title: 'Error',
+      description: 'Failed to approve student.',
+      variant: 'destructive',
+    });
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+const handleSubmitStudent = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  if (!editingId) {
+    toast({
+      title: 'Student Registration',
+      description:
+        'Students should register from the student signup page. The Admin panel is used to manage and approve registered students.',
+      variant: 'destructive',
+    });
+    return;
+  }
+
+  if (!studentForm.full_name.trim()) {
+    toast({
+      title: 'Full Name Required',
+      description: 'Please enter the student name.',
+      variant: 'destructive',
+    });
+    return;
+  }
+
+  if (!studentForm.email.trim()) {
+    toast({
+      title: 'Email Required',
+      description: 'Please enter the student email.',
+      variant: 'destructive',
+    });
+    return;
+  }
+
+  if (!studentForm.enrollment_number.trim()) {
+    toast({
+      title: 'Enrollment Number Required',
+      description: 'Please enter the enrollment number.',
+      variant: 'destructive',
+    });
+    return;
+  }
+
+  setIsSubmitting(true);
+
+  try {
+    const subjectsArray = studentForm.subjects
+      ? studentForm.subjects
+          .split(',')
+          .map((subject) => subject.trim())
+          .filter(Boolean)
+      : [];
+
+    const payload = {
+      full_name: studentForm.full_name.trim(),
+      email: studentForm.email.trim().toLowerCase(),
+      enrollment_number:
+        studentForm.enrollment_number.trim(),
+      course: studentForm.course.trim(),
+      phone: studentForm.phone.trim(),
+      class_grade: studentForm.class_grade.trim(),
+      address: studentForm.address.trim(),
+      subjects: subjectsArray,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error } = await (
+      supabase.from('student_profiles') as any
+    )
+      .update(payload)
+      .eq('id', editingId);
+
+    if (error) {
+      throw error;
+    }
+
+    toast({
+      title: 'Student Updated',
+      description:
+        'Student profile has been updated successfully.',
+    });
+
+    setStudentForm({
+      full_name: '',
+      email: '',
+      enrollment_number: '',
+      course: '',
+      phone: '',
+      class_grade: '',
+      address: '',
+      subjects: '',
+    });
+
+    setEditingId(null);
+    setEditingType(null);
+
+    await loadData();
+  } catch (error) {
+    console.error('Student update error:', error);
+
+    toast({
+      title: 'Error',
+      description:
+        error instanceof Error
+          ? error.message
+          : 'Failed to update student.',
+      variant: 'destructive',
+    });
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+// ==================== ADMISSION CREATE / UPDATE ====================
+
+const handleSubmitAdmission = async (
+  e: React.FormEvent
+) => {
+  e.preventDefault();
+
+  if (!admissionForm.student_name.trim()) {
+    toast({
+      title: 'Student Name Required',
+      description: 'Please enter the student name.',
+      variant: 'destructive',
+    });
+    return;
+  }
+
+  if (!admissionForm.email.trim()) {
+    toast({
+      title: 'Email Required',
+      description: 'Please enter the student email.',
+      variant: 'destructive',
+    });
+    return;
+  }
+
+  setIsSubmitting(true);
+
+  try {
+    const payload = {
+      student_name:
+        admissionForm.student_name.trim(),
+
+      email:
+        admissionForm.email.trim().toLowerCase(),
+
+      phone:
+        admissionForm.phone.trim(),
+
+      date_of_birth:
+        admissionForm.date_of_birth || null,
+
+      parent_name:
+        admissionForm.parent_name.trim(),
+
+      parent_phone:
+        admissionForm.parent_phone.trim(),
+
+      address:
+        admissionForm.address.trim(),
+
+      office_address:
+        admissionForm.office_address.trim(),
+
+      office_phone_1:
+        admissionForm.office_phone_1.trim(),
+
+      office_phone_2:
+        admissionForm.office_phone_2.trim(),
+
+      class:
+        admissionForm.class.trim(),
+
+      previous_qualification:
+        admissionForm.previous_qualification.trim(),
+
+      course:
+        admissionForm.course.trim(),
+
+      subjects:
+        admissionForm.subjects
+          .map((subject) => subject.trim())
+          .filter(Boolean),
+
+      school_college:
+        admissionForm.school_college.trim(),
+
+      hobbies:
+        admissionForm.hobbies.trim(),
+
+      photo_url:
+        admissionForm.photo_url || '',
+
+      reference_number:
+        admissionForm.reference_number.trim(),
+
+      message:
+        admissionForm.message.trim(),
+
+      status:
+        admissionForm.status,
+
+      updated_at:
+        new Date().toISOString(),
+    };
+
+    let error;
+
+    // CREATE
+    if (editingType === 'new-admission') {
+      const response = await (
+        supabase.from('admissions') as any
+      ).insert([payload]);
+
+      error = response.error;
+    }
+
+    // UPDATE
+    else if (
+      editingType === 'admission' &&
+      editingId
+    ) {
+      const response = await (
+        supabase.from('admissions') as any
+      )
+        .update(payload)
+        .eq('id', editingId);
+
+      error = response.error;
+    }
+
+    if (error) {
+      throw error;
+    }
+
+    toast({
+      title:
+        editingType === 'new-admission'
+          ? 'Admission Created'
+          : 'Admission Updated',
+
+      description:
+        editingType === 'new-admission'
+          ? 'New admission application has been added.'
+          : 'Admission application has been updated successfully.',
+    });
+
+    setAdmissionForm(emptyAdmissionForm);
+
+    setEditingId(null);
+    setEditingType(null);
+
+    await loadData();
+
+  } catch (error) {
+    console.error(
+      'Admission save error:',
+      error
+    );
+
+    toast({
+      title: 'Error',
+      description:
+        error instanceof Error
+          ? error.message
+          : 'Failed to save admission.',
+      variant: 'destructive',
+    });
+
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+  const handleUpdateAdmissionStatus = async () => {
+    setIsSubmitting(true);
+    try {
+      const { error } = await (supabase.from('admissions') as any).update({ status: admissionStatusForm.status }).eq('id', admissionStatusForm.id);
+      if (error) throw error;
+      toast({ title: 'Success', description: 'Admission status updated' });
+      setAdmissionStatusForm({ id: '', status: 'pending' });
+      loadData();
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to update status', variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEdit = (item: any, type: string) => {
+    setEditingId(item.id);
+    setEditingType(type);
+    if (type === 'course') {
+      setCourseForm({ 
+        title: item.title, 
+        description: item.description || '', 
+        image_url: item.image_url || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&auto=format&fit=crop',
+        duration: item.duration || 'Flexible',
+        fee: item.fee || '',
+        featured: item.featured || false
+      });
+    } else if (type === 'notice') {
+      setNoticeForm({ title: item.title, content: item.content || '', priority: item.priority || 'medium', is_active: item.is_active !== false });
+    } else if (type === 'student') {
+  const subjectsString = Array.isArray(item.subjects)
+    ? item.subjects.join(', ')
+    : item.subjects || '';
+
+  setStudentForm({
+    full_name: item.full_name || '',
+    email: item.email || '',
+    enrollment_number: item.enrollment_number || '',
+    course: item.course || '',
+    phone: item.phone || '',
+    class_grade: item.class_grade || '',
+    address: item.address || '',
+    subjects: subjectsString,
+  });
+}else if (type === 'admission') {
+  const subjects = Array.isArray(item.subjects)
+    ? item.subjects
+    : [];
+
+  setAdmissionForm({
+    student_name:
+      item.student_name || '',
+
+    email:
+      item.email || '',
+
+    phone:
+      item.phone || '',
+
+    date_of_birth:
+      item.date_of_birth || '',
+
+    parent_name:
+      item.parent_name || '',
+
+    parent_phone:
+      item.parent_phone || '',
+
+    address:
+      item.address || '',
+
+    office_address:
+      item.office_address || '',
+
+    office_phone_1:
+      item.office_phone_1 || '',
+
+    office_phone_2:
+      item.office_phone_2 || '',
+
+    class:
+      item.class || '',
+
+    previous_qualification:
+      item.previous_qualification || '',
+
+    course:
+      item.course || '',
+
+    subjects: [
+      subjects[0] || '',
+      subjects[1] || '',
+      subjects[2] || '',
+      subjects[3] || '',
+    ],
+
+    school_college:
+      item.school_college || '',
+
+    hobbies:
+      item.hobbies || '',
+
+    photo_url:
+      item.photo_url || '',
+
+    reference_number:
+      item.reference_number || '',
+
+    message:
+      item.message || '',
+
+    status:
+      item.status || 'pending',
+  });
+
+  setActiveTab('admissions');
+}
+  };
+  const handleNewAdmission = () => {
+  setAdmissionForm(emptyAdmissionForm);
+
+  setEditingId(null);
+
+  setEditingType('new-admission');
+
+  setActiveTab('admissions');
+};
+const handleViewAdmission = (admission: any) => {
+  setViewingAdmission(admission);
+  setShowAdmissionView(true);
+};
+  const handleDelete = async () => {
+    if (!deleteId || !deleteType) return;
+    try {
+      const { error } = await (supabase.from(deleteType) as any).delete().eq('id', deleteId);
+      if (error) throw error;
+      toast({ title: 'Success', description: 'Item deleted' });
+      setDeleteId(null);
+      setDeleteType(null);
+      setShowDeleteDialog(false);
+      loadData();
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to delete', variant: 'destructive' });
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditingType(null);
+    setCourseForm({ title: '', description: '', image_url: '', duration: 'Flexible', fee: '', featured: false });
+    setNoticeForm({ title: '', content: '', priority: 'medium', is_active: true });
+    setStudentForm({ full_name: '', email: '', enrollment_number: '', course: '', phone: '', class_grade: '', address: '', subjects: '' });
+    setAdmissionForm(emptyAdmissionForm);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      router.push('/auth/login');
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to logout', variant: 'destructive' });
+    }
+  };
+
+  const confirmDelete = (id: string, type: string) => {
+    setDeleteId(id);
+    setDeleteType(type);
+    setShowDeleteDialog(true);
+  };
+
+const filteredStudents = students.filter((student) => {
+  const searchLower =
+    studentSearchQuery.trim().toLowerCase();
+
+  const studentName =
+    student.full_name?.toLowerCase() || '';
+
+  const studentEmail =
+    student.email?.toLowerCase() || '';
+
+  const enrollmentNumber =
+    student.enrollment_number?.toLowerCase() || '';
+
+  const matchesSearch =
+    !searchLower ||
+    studentName.includes(searchLower) ||
+    studentEmail.includes(searchLower) ||
+    enrollmentNumber.includes(searchLower);
+
+  const matchesCourse =
+    studentFilterCourse === 'all' ||
+    student.course === studentFilterCourse;
+
+  const matchesClass =
+    studentFilterClass === 'all' ||
+    student.class_grade === studentFilterClass;
+
+  const matchesStatus =
+    studentStatusFilter === 'all' ||
+    (studentStatusFilter === 'approved'
+      ? student.is_approved === true
+      : student.is_approved === false);
+
+  return (
+    matchesSearch &&
+    matchesCourse &&
+    matchesClass &&
+    matchesStatus
+  );
+});
+
+const uniqueCourses = Array.from(
+  new Set(
+    students
+      .map((student) => student.course)
+      .filter(
+        (course): course is string =>
+          Boolean(course)
+      )
+  )
+);
+
+const uniqueClasses = Array.from(
+  new Set(
+    students
+      .map((student) => student.class_grade)
+      .filter(
+        (classGrade): classGrade is string =>
+          Boolean(classGrade)
+      )
+  )
+);
+
+const pendingStudents = students.filter(
+  (student) => student.is_approved === false
+);
+
+const approvedStudents = students.filter(
+  (student) => student.is_approved === true
+);
+
+if (authLoading || isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gradient-to-b from-yellow-50 to-blue-50">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  if (!user || role !== 'admin') return null;
+
+  const inputClass = 'border-blue-100 focus:border-blue-400 focus:ring-blue-400';
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-yellow-50 via-white to-blue-50">
+      <header className="border-b border-blue-100 bg-white/80 backdrop-blur-sm sticky top-0 z-40">
+        <div className="mx-auto max-w-7xl px-3 py-3 sm:px-4 sm:py-4 lg:px-8">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-blue-600">
+                <GraduationCap className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl truncate">Admin Dashboard</h1>
+                <p className="text-xs text-gray-500 truncate">Starlight Academy</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 sm:gap-4">
+              <span className="hidden text-xs sm:text-sm text-gray-500 sm:inline truncate max-w-[120px] sm:max-w-none">{user.email}</span>
+              <Button variant="outline" size="sm" onClick={handleLogout} className="gap-1 sm:gap-2 border-blue-200 text-blue-700 hover:bg-blue-50">
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">Logout</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-7xl min-w-0 px-3 py-6 sm:px-4 sm:py-8 lg:px-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="min-w-0 w-full">
+          <TabsList className="mb-4 flex h-auto w-full justify-start gap-1.5 overflow-x-auto rounded-xl bg-blue-50 p-1.5 sm:mb-6">
+            <TabsTrigger value="courses" className="shrink-0 gap-1.5 whitespace-nowrap px-2 py-1.5 text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white sm:px-3 sm:text-sm">
+              <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Courses <span className="ml-1 rounded-full bg-white/20 px-1.5 text-[10px] sm:text-xs">{courses.length}</span>
+            </TabsTrigger>
+            <TabsTrigger value="blogs" className="shrink-0 gap-1.5 whitespace-nowrap px-2 py-1.5 text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white sm:px-3 sm:text-sm">
+              <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Blogs
+            </TabsTrigger>
+            <TabsTrigger value="notices" className="shrink-0 gap-1.5 whitespace-nowrap px-2 py-1.5 text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white sm:px-3 sm:text-sm">
+              <Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Notices <span className="ml-1 rounded-full bg-white/20 px-1.5 text-[10px] sm:text-xs">{notices.length}</span>
+            </TabsTrigger>
+            <TabsTrigger value="students" className="shrink-0 gap-1.5 whitespace-nowrap px-2 py-1.5 text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white sm:px-3 sm:text-sm">
+              <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Students <span className="ml-1 rounded-full bg-white/20 px-1.5 text-[10px] sm:text-xs">{students.length}</span>
+            </TabsTrigger>
+            <TabsTrigger value="admissions" className="shrink-0 gap-1.5 whitespace-nowrap px-2 py-1.5 text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white sm:px-3 sm:text-sm">
+              <ClipboardList className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Admissions <span className="ml-1 rounded-full bg-white/20 px-1.5 text-[10px] sm:text-xs">{admissions.length}</span>
+            </TabsTrigger>
+            <TabsTrigger value="leads" className="shrink-0 gap-1.5 whitespace-nowrap px-2 py-1.5 text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white sm:px-3 sm:text-sm">
+              <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Contact <span className="ml-1 rounded-full bg-white/20 px-1.5 text-[10px] sm:text-xs">{leads.length}</span>
+            </TabsTrigger>
+           
+            <TabsTrigger
+  value="gallery"
+  className="shrink-0 gap-1.5 whitespace-nowrap px-2 py-1.5 text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white sm:px-3 sm:text-sm"
+>
+  <ImageIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+  Gallery
+</TabsTrigger>
+            <TabsTrigger value="quizzes" className="shrink-0 gap-1.5 whitespace-nowrap px-2 py-1.5 text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white sm:px-3 sm:text-sm">
+              <HelpCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Quizzes
+            </TabsTrigger>
+          </TabsList>
+
+          {/* ==================== COURSES ==================== */}
+          <TabsContent value="courses" className="space-y-6">
+            <Card className="border-blue-100 shadow-sm">
+              <CardHeader className="px-4 sm:px-6">
+                <CardTitle className="text-blue-900">{editingType === 'course' ? 'Edit Course' : 'Add New Course'}</CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 sm:px-6">
+                <form onSubmit={handleSubmitCourse} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="course-title">Course Title *</Label>
+                    <Input id="course-title" value={courseForm.title} onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })} required placeholder="e.g., Web Development" className={inputClass} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="course-desc">Description *</Label>
+                    <Textarea id="course-desc" value={courseForm.description} onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })} required placeholder="Course description" rows={3} className={inputClass} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Course Image</Label>
+                    <ImageUpload value={courseForm.image_url} onChange={(url) => setCourseForm({ ...courseForm, image_url: url || '' })} bucket="courses" folder="uploads" />
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Duration</Label>
+                      <Input value={courseForm.duration} onChange={(e) => setCourseForm({ ...courseForm, duration: e.target.value })} placeholder="e.g., 3 months, Flexible" className={inputClass} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Fee</Label>
+                      <Input value={courseForm.fee} onChange={(e) => setCourseForm({ ...courseForm, fee: e.target.value })} placeholder="e.g., ₹5000, Contact Us" className={inputClass} />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="checkbox" 
+                      id="course-featured" 
+                      checked={courseForm.featured} 
+                      onChange={(e) => setCourseForm({ ...courseForm, featured: e.target.checked })} 
+                      className="h-4 w-4 text-blue-600" 
+                    />
+                    <Label htmlFor="course-featured" className="mb-0 cursor-pointer">Featured Course</Label>
+                  </div>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 text-white hover:bg-blue-700 sm:w-auto">
+                      {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : editingType === 'course' ? 'Update Course' : 'Add Course'}
+                    </Button>
+                    {editingType === 'course' && <Button type="button" variant="outline" onClick={cancelEdit} className="w-full border-blue-200 text-blue-700 hover:bg-blue-50 sm:w-auto">Cancel</Button>}
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {courses.map((course) => (
+                <Card key={course.id} className="border-blue-100 transition-all hover:shadow-md hover:shadow-blue-100/50 overflow-hidden">
+                  {course.image_url ? (
+                    <div className="relative h-40 w-full">
+                      <Image src={course.image_url} alt={course.title} fill className="object-cover" />
+                    </div>
+                  ) : (
+                    <div className="flex h-24 items-center justify-center bg-gradient-to-br from-yellow-50 to-blue-50">
+                      <span className="text-4xl font-bold text-blue-200">{course.title.charAt(0)}</span>
+                    </div>
+                  )}
+                  <CardHeader>
+                    <CardTitle className="line-clamp-2 text-lg">{course.title}</CardTitle>
+                    <CardDescription className="line-clamp-3">{course.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => handleEdit(course, 'course')} className="border-yellow-200 text-yellow-700 hover:bg-yellow-50"><Edit2 className="h-4 w-4" /></Button>
+                      <Button size="sm" variant="destructive" onClick={() => confirmDelete(course.id, 'courses')}><Trash2 className="h-4 w-4" /></Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          {/* ==================== BLOGS ==================== */}
+          <TabsContent value="blogs" className="space-y-6">
+            <BlogCMS />
+          </TabsContent>
+
+          {/* ==================== NOTICES ==================== */}
+          <TabsContent value="notices" className="space-y-6">
+            <Card className="border-blue-100 shadow-sm">
+              <CardHeader className="px-4 sm:px-6">
+                <CardTitle className="text-blue-900">{editingType === 'notice' ? 'Edit Notice' : 'Add New Notice'}</CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 sm:px-6">
+                <form onSubmit={handleSubmitNotice} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="notice-title">Notice Title *</Label>
+                    <Input id="notice-title" value={noticeForm.title} onChange={(e) => setNoticeForm({ ...noticeForm, title: e.target.value })} required placeholder="Notice title" className={inputClass} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="notice-content">Content *</Label>
+                    <Textarea id="notice-content" value={noticeForm.content} onChange={(e) => setNoticeForm({ ...noticeForm, content: e.target.value })} required placeholder="Notice content" rows={3} className={inputClass} />
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Priority *</Label>
+                      <Select value={noticeForm.priority} onValueChange={(v) => setNoticeForm({ ...noticeForm, priority: v })}>
+                        <SelectTrigger className={inputClass}><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Status</Label>
+                      <Select value={noticeForm.is_active ? 'active' : 'inactive'} onValueChange={(v) => setNoticeForm({ ...noticeForm, is_active: v === 'active' })}>
+                        <SelectTrigger className={inputClass}><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="inactive">Inactive</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 text-white hover:bg-blue-700 sm:w-auto">
+                      {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : editingType === 'notice' ? 'Update Notice' : 'Add Notice'}
+                    </Button>
+                    {editingType === 'notice' && <Button type="button" variant="outline" onClick={cancelEdit} className="w-full border-blue-200 text-blue-700 hover:bg-blue-50 sm:w-auto">Cancel</Button>}
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+            <div className="space-y-4">
+              {notices.map((notice) => (
+                <Card key={notice.id} className="border-blue-100 transition-all hover:shadow-md hover:shadow-blue-100/50">
+                  <CardHeader>
+                    <div className="flex flex-col items-start justify-between gap-4 sm:flex-row">
+                      <div className="min-w-0">
+                        <CardTitle className="truncate">{notice.title}</CardTitle>
+                        <CardDescription>
+                          Priority: <span className={`font-semibold capitalize ${notice.priority === 'high' ? 'text-red-600' : notice.priority === 'medium' ? 'text-yellow-600' : 'text-blue-600'}`}>{notice.priority}</span>
+                          {' | '}Status: <span className={notice.is_active ? 'text-green-600' : 'text-gray-400'}>{notice.is_active ? 'Active' : 'Inactive'}</span>
+                        </CardDescription>
+                      </div>
+                      <div className="flex w-full shrink-0 gap-2 sm:w-auto">
+                        <Button size="sm" variant="outline" onClick={() => handleEdit(notice, 'notice')} className="border-yellow-200 text-yellow-700 hover:bg-yellow-50"><Edit2 className="h-4 w-4" /></Button>
+                        <Button size="sm" variant="destructive" onClick={() => confirmDelete(notice.id, 'notices')}><Trash2 className="h-4 w-4" /></Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent><p className="text-gray-600">{notice.content}</p></CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          {/* ==================== STUDENTS ==================== */}
+          <TabsContent value="students" className="space-y-6">
+            <Card className="border-blue-100 shadow-sm">
+             <CardHeader className="px-4 sm:px-6">
+  <CardTitle className="text-blue-900">
+    {editingType === 'student'
+      ? 'Edit Student'
+      : 'Student Management'}
+  </CardTitle>
+
+  <CardDescription>
+    Manage registered students and update their enrollment
+    information.
+  </CardDescription>
+</CardHeader>
+              <CardContent className="px-4 sm:px-6">
+                <form onSubmit={handleSubmitStudent} className="space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="student-name">Full Name *</Label>
+                      <Input id="student-name" value={studentForm.full_name} onChange={(e) => setStudentForm({ ...studentForm, full_name: e.target.value })} required placeholder="Student name" className={inputClass} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="student-email">Email *</Label>
+                      <Input id="student-email" type="email" value={studentForm.email} onChange={(e) => setStudentForm({ ...studentForm, email: e.target.value })} required placeholder="student@email.com" className={inputClass} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="student-enrollment">Enrollment Number *</Label>
+                      <Input id="student-enrollment" value={studentForm.enrollment_number} onChange={(e) => setStudentForm({ ...studentForm, enrollment_number: e.target.value })} required placeholder="e.g., VEA-2024-001" className={inputClass} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="student-phone">Phone</Label>
+                      <Input id="student-phone" type="tel" value={studentForm.phone} onChange={(e) => setStudentForm({ ...studentForm, phone: e.target.value })} placeholder="Contact number" className={inputClass} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="student-course">Course</Label>
+                      <Input id="student-course" value={studentForm.course} onChange={(e) => setStudentForm({ ...studentForm, course: e.target.value })} placeholder="Enrolled course" className={inputClass} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="student-class">Class Grade</Label>
+                      <Input id="student-class" value={studentForm.class_grade} onChange={(e) => setStudentForm({ ...studentForm, class_grade: e.target.value })} placeholder="e.g., 10th, 12th" className={inputClass} />
+                    </div>
+                    <div className="space-y-2 sm:col-span-2">
+  <Label htmlFor="student-address">
+    Address
+  </Label>
+
+  <Textarea
+    id="student-address"
+    value={studentForm.address}
+    onChange={(e) =>
+      setStudentForm({
+        ...studentForm,
+        address: e.target.value,
+      })
+    }
+    placeholder="Student's full address"
+    rows={3}
+    className={inputClass}
+  />
+</div>
+                    <div className="space-y-2">
+                      <Label htmlFor="student-subjects">Subjects</Label>
+                      <Input id="student-subjects" value={studentForm.subjects} onChange={(e) => setStudentForm({ ...studentForm, subjects: e.target.value })} placeholder="e.g., Math, Science, English" className={inputClass} />
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 text-white hover:bg-blue-700 sm:w-auto">
+                      {isSubmitting ? (
+  <>
+    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+    Updating...
+  </>
+) : (
+  'Update Student'
+)}
+                    </Button>
+                  {editingType === 'student' && (
+  <>
+    <Button
+      type="submit"
+      disabled={isSubmitting}
+      className="w-full bg-blue-600 text-white hover:bg-blue-700 sm:w-auto"
+    >
+      {isSubmitting ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Updating...
+        </>
+      ) : (
+        'Update Student'
+      )}
+    </Button>
+
+    <Button
+      type="button"
+      variant="outline"
+      onClick={cancelEdit}
+      className="w-full border-blue-200 text-blue-700 hover:bg-blue-50 sm:w-auto"
+    >
+      Cancel
+    </Button>
+  </>
+)}
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+
+            <Card className="border-blue-100 shadow-sm overflow-hidden">
+              <CardHeader className="pb-4">
+                <div className="space-y-4">
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      <Label htmlFor="student-search" className="text-xs text-gray-500">Search by Name or Enrollment</Label>
+                      <Input
+                        id="student-search"
+                        type="text"
+                        placeholder="Search students..."
+                        value={studentSearchQuery}
+                        onChange={(e) => setStudentSearchQuery(e.target.value)}
+                        className={`${inputClass} mt-1`}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <Label htmlFor="student-filter-course" className="text-xs text-gray-500">Filter by Course</Label>
+                      <Select value={studentFilterCourse} onValueChange={setStudentFilterCourse}>
+                        <SelectTrigger id="student-filter-course" className={`${inputClass} mt-1`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Courses</SelectItem>
+                          {uniqueCourses.map(course => (
+                            <SelectItem key={course} value={course}>{course}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="student-filter-class" className="text-xs text-gray-500">Filter by Class</Label>
+                      <Select value={studentFilterClass} onValueChange={setStudentFilterClass}>
+                        <SelectTrigger id="student-filter-class" className={`${inputClass} mt-1`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Classes</SelectItem>
+                          {uniqueClasses.map(cls => (
+                            <SelectItem key={cls} value={cls}>{cls}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  {(studentSearchQuery || studentFilterCourse !== 'all' || studentFilterClass !== 'all') && (
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setStudentSearchQuery('');
+                          setStudentFilterCourse('all');
+                          setStudentFilterClass('all');
+                        }}
+                        className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                      >
+                        Clear Filters
+                      </Button>
+                      <span className="text-sm text-gray-500 flex items-center">
+                        {filteredStudents.length} of {students.length} student{students.length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </CardHeader>
+              <div className="overflow-x-auto">
+                <table className="min-w-[720px] w-full border-collapse text-sm">
+                 <thead>
+  <tr className="border-b border-blue-100 bg-blue-50">
+    <th className="px-4 py-3 text-left font-semibold text-blue-900">
+      Student
+    </th>
+
+    <th className="px-4 py-3 text-left font-semibold text-blue-900">
+      Email
+    </th>
+
+    <th className="px-4 py-3 text-left font-semibold text-blue-900">
+      Enrollment
+    </th>
+
+    <th className="px-4 py-3 text-left font-semibold text-blue-900">
+      Course
+    </th>
+
+    <th className="hidden px-4 py-3 text-left font-semibold text-blue-900 md:table-cell">
+      Class
+    </th>
+
+    <th className="px-4 py-3 text-left font-semibold text-blue-900">
+      Status
+    </th>
+
+    <th className="px-4 py-3 text-left font-semibold text-blue-900">
+      Actions
+    </th>
+  </tr>
+</thead>
+                <tbody>
+  {filteredStudents.map((student) => (
+    <tr
+      key={student.id}
+      className="border-b border-blue-50 hover:bg-yellow-50/30"
+    >
+      <td className="px-4 py-3 font-medium">
+        {student.full_name}
+      </td>
+
+      <td className="px-4 py-3 text-gray-600">
+        {student.email || '-'}
+      </td>
+
+      <td className="px-4 py-3">
+        {student.enrollment_number ? (
+          <span className="rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+            {student.enrollment_number}
+          </span>
+        ) : (
+          '-'
+        )}
+      </td>
+
+      <td className="px-4 py-3">
+        {student.course || '-'}
+      </td>
+
+      <td className="hidden px-4 py-3 md:table-cell">
+        {student.class_grade || '-'}
+      </td>
+
+      <td className="px-4 py-3">
+        {student.is_approved ? (
+          <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-800">
+            Approved
+          </span>
+        ) : (
+          <span className="rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-semibold text-yellow-800">
+            Pending
+          </span>
+        )}
+      </td>
+
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-2">
+          {!student.is_approved && (
+            <Button
+              size="sm"
+              onClick={() => handleApproveStudent(student.id)}
+              disabled={isSubmitting}
+              className="bg-green-600 text-white hover:bg-green-700"
+            >
+              Approve
+            </Button>
+          )}
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleEdit(student, 'student')}
+            className="h-8 w-8 border-yellow-200 p-0 text-yellow-700 hover:bg-yellow-50"
+          >
+            <Edit2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </td>
+    </tr>
+  ))}
+</tbody>
+                </table>
+        <div className="grid gap-3 border-t border-blue-100 bg-white p-4 sm:grid-cols-3">
+  <Button
+    type="button"
+    variant={
+      studentStatusFilter === 'all'
+        ? 'default'
+        : 'outline'
+    }
+    onClick={() =>
+      setStudentStatusFilter('all')
+    }
+    className={
+      studentStatusFilter === 'all'
+        ? 'bg-blue-600 hover:bg-blue-700'
+        : 'border-blue-200 text-blue-700 hover:bg-blue-50'
+    }
+  >
+    All ({students.length})
+  </Button>
+
+  <Button
+    type="button"
+    variant={
+      studentStatusFilter === 'pending'
+        ? 'default'
+        : 'outline'
+    }
+    onClick={() =>
+      setStudentStatusFilter('pending')
+    }
+    className={
+      studentStatusFilter === 'pending'
+        ? 'bg-yellow-500 hover:bg-yellow-600'
+        : 'border-yellow-200 text-yellow-700 hover:bg-yellow-50'
+    }
+  >
+    Pending ({pendingStudents.length})
+  </Button>
+
+  <Button
+    type="button"
+    variant={
+      studentStatusFilter === 'approved'
+        ? 'default'
+        : 'outline'
+    }
+    onClick={() =>
+      setStudentStatusFilter('approved')
+    }
+    className={
+      studentStatusFilter === 'approved'
+        ? 'bg-green-600 hover:bg-green-700'
+        : 'border-green-200 text-green-700 hover:bg-green-50'
+    }
+  >
+    Approved ({approvedStudents.length})
+  </Button>
+</div>
+              </div>
+            </Card>
+          </TabsContent>
+
+        {/* ==================== ADMISSIONS ==================== */}
+
+<TabsContent value="admissions" className="space-y-6">
+
+  {/* ==================== ADMISSION FORM ==================== */}
+
+  {(editingType === 'admission' ||
+    editingType === 'new-admission') && (
+
+    <Card className="border-blue-100 shadow-sm">
+
+      <CardHeader>
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+          <div>
+            <CardTitle className="text-blue-900">
+              {editingType === 'new-admission'
+                ? 'New Admission'
+                : 'Edit Admission'}
+            </CardTitle>
+
+            <CardDescription>
+              Enter complete student admission information.
+            </CardDescription>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={cancelEdit}
+            className="border-blue-200 text-blue-700"
+          >
+            Cancel
+          </Button>
+
+        </div>
+
+      </CardHeader>
+
+      <CardContent>
+
+        <form
+          onSubmit={handleSubmitAdmission}
+          className="space-y-6"
+        >
+
+          {/* ================= PERSONAL INFORMATION ================= */}
+
+          <div>
+            <h3 className="mb-4 text-lg font-semibold text-blue-900">
+              Personal Information
+            </h3>
+
+            <div className="grid gap-4 md:grid-cols-2">
+
+              {/* Student Name */}
+
+              <div className="space-y-2">
+                <Label>
+                  Student Name *
+                </Label>
+
+                <Input
+                  value={admissionForm.student_name}
+                  onChange={(e) =>
+                    setAdmissionForm({
+                      ...admissionForm,
+                      student_name: e.target.value,
+                    })
+                  }
+                  placeholder="Student full name"
+                  required
+                  className={inputClass}
+                />
+              </div>
+
+              {/* Email */}
+
+              <div className="space-y-2">
+                <Label>
+                  Email *
+                </Label>
+
+                <Input
+                  type="email"
+                  value={admissionForm.email}
+                  onChange={(e) =>
+                    setAdmissionForm({
+                      ...admissionForm,
+                      email: e.target.value,
+                    })
+                  }
+                  placeholder="student@email.com"
+                  required
+                  className={inputClass}
+                />
+              </div>
+
+              {/* DOB */}
+
+              <div className="space-y-2">
+                <Label>
+                  Date of Birth
+                </Label>
+
+                <Input
+                  type="date"
+                  value={admissionForm.date_of_birth}
+                  onChange={(e) =>
+                    setAdmissionForm({
+                      ...admissionForm,
+                      date_of_birth: e.target.value,
+                    })
+                  }
+                  className={inputClass}
+                />
+              </div>
+
+              {/* Phone */}
+
+              <div className="space-y-2">
+                <Label>
+                  Phone
+                </Label>
+
+                <Input
+                  type="tel"
+                  value={admissionForm.phone}
+                  onChange={(e) =>
+                    setAdmissionForm({
+                      ...admissionForm,
+                      phone: e.target.value,
+                    })
+                  }
+                  placeholder="Student phone number"
+                  className={inputClass}
+                />
+              </div>
+
+            </div>
+          </div>
+
+
+          {/* ================= PARENT INFORMATION ================= */}
+
+          <div>
+            <h3 className="mb-4 text-lg font-semibold text-blue-900">
+              Parent / Guardian Information
+            </h3>
+
+            <div className="grid gap-4 md:grid-cols-2">
+
+              <div className="space-y-2">
+                <Label>
+                  Father's / Guardian's Name
+                </Label>
+
+                <Input
+                  value={admissionForm.parent_name}
+                  onChange={(e) =>
+                    setAdmissionForm({
+                      ...admissionForm,
+                      parent_name: e.target.value,
+                    })
+                  }
+                  placeholder="Father / Guardian name"
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>
+                  Parent Phone
+                </Label>
+
+                <Input
+                  type="tel"
+                  value={admissionForm.parent_phone}
+                  onChange={(e) =>
+                    setAdmissionForm({
+                      ...admissionForm,
+                      parent_phone: e.target.value,
+                    })
+                  }
+                  placeholder="Parent phone number"
+                  className={inputClass}
+                />
+              </div>
+
+            </div>
+          </div>
+
+
+          {/* ================= ADDRESS ================= */}
+
+          <div>
+            <h3 className="mb-4 text-lg font-semibold text-blue-900">
+              Address
+            </h3>
+
+            <div className="space-y-4">
+
+              <div className="space-y-2">
+                <Label>
+                  Home Address
+                </Label>
+
+                <Textarea
+                  value={admissionForm.address}
+                  onChange={(e) =>
+                    setAdmissionForm({
+                      ...admissionForm,
+                      address: e.target.value,
+                    })
+                  }
+                  placeholder="Complete home address"
+                  rows={3}
+                  className={inputClass}
+                />
+              </div>
+
+            </div>
+          </div>
+
+
+          {/* ================= OFFICE INFORMATION ================= */}
+
+          <div>
+            <h3 className="mb-4 text-lg font-semibold text-blue-900">
+              Father's / Guardian's Office Information
+            </h3>
+
+            <div className="space-y-4">
+
+              <div className="space-y-2">
+                <Label>
+                  Office Address
+                </Label>
+
+                <Textarea
+                  value={admissionForm.office_address}
+                  onChange={(e) =>
+                    setAdmissionForm({
+                      ...admissionForm,
+                      office_address: e.target.value,
+                    })
+                  }
+                  placeholder="Office address"
+                  rows={3}
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+
+                <div className="space-y-2">
+                  <Label>
+                    Office Phone 1
+                  </Label>
+
+                  <Input
+                    value={admissionForm.office_phone_1}
+                    onChange={(e) =>
+                      setAdmissionForm({
+                        ...admissionForm,
+                        office_phone_1: e.target.value,
+                      })
+                    }
+                    className={inputClass}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>
+                    Office Phone 2
+                  </Label>
+
+                  <Input
+                    value={admissionForm.office_phone_2}
+                    onChange={(e) =>
+                      setAdmissionForm({
+                        ...admissionForm,
+                        office_phone_2: e.target.value,
+                      })
+                    }
+                    className={inputClass}
+                  />
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+
+
+          {/* ================= ACADEMIC INFORMATION ================= */}
+
+          <div>
+            <h3 className="mb-4 text-lg font-semibold text-blue-900">
+              Academic Information
+            </h3>
+
+            <div className="grid gap-4 md:grid-cols-2">
+
+              <div className="space-y-2">
+                <Label>
+                  Course
+                </Label>
+
+                <Input
+                  value={admissionForm.course}
+                  onChange={(e) =>
+                    setAdmissionForm({
+                      ...admissionForm,
+                      course: e.target.value,
+                    })
+                  }
+                  placeholder="Course name"
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>
+                  Class
+                </Label>
+
+                <Input
+                  value={admissionForm.class}
+                  onChange={(e) =>
+                    setAdmissionForm({
+                      ...admissionForm,
+                      class: e.target.value,
+                    })
+                  }
+                  placeholder="e.g. 10th / 12th"
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>
+                  Previous Qualification
+                </Label>
+
+                <Input
+                  value={
+                    admissionForm.previous_qualification
+                  }
+                  onChange={(e) =>
+                    setAdmissionForm({
+                      ...admissionForm,
+                      previous_qualification:
+                        e.target.value,
+                    })
+                  }
+                  placeholder="Previous qualification"
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>
+                  School / College
+                </Label>
+
+                <Input
+                  value={admissionForm.school_college}
+                  onChange={(e) =>
+                    setAdmissionForm({
+                      ...admissionForm,
+                      school_college:
+                        e.target.value,
+                    })
+                  }
+                  placeholder="School or college name"
+                  className={inputClass}
+                />
+              </div>
+
+            </div>
+          </div>
+
+
+          {/* ================= SUBJECTS ================= */}
+
+          <div>
+            <h3 className="mb-4 text-lg font-semibold text-blue-900">
+              Subjects
+            </h3>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+
+              {admissionForm.subjects.map(
+                (subject, index) => (
+
+                  <div
+                    key={index}
+                    className="space-y-2"
+                  >
+
+                    <Label>
+                      Subject {index + 1}
+                    </Label>
+
+                    <Input
+                      value={subject}
+                      onChange={(e) => {
+
+                        const subjects = [
+                          ...admissionForm.subjects,
+                        ];
+
+                        subjects[index] =
+                          e.target.value;
+
+                        setAdmissionForm({
+                          ...admissionForm,
+                          subjects,
+                        });
+
+                      }}
+                      placeholder={`Subject ${index + 1}`}
+                      className={inputClass}
+                    />
+
+                  </div>
+
+                )
+              )}
+
+            </div>
+          </div>
+
+
+          {/* ================= OTHER INFORMATION ================= */}
+
+          <div>
+            <h3 className="mb-4 text-lg font-semibold text-blue-900">
+              Other Information
+            </h3>
+
+            <div className="space-y-4">
+
+              <div className="space-y-2">
+                <Label>
+                  Hobbies
+                </Label>
+
+                <Textarea
+                  value={admissionForm.hobbies}
+                  onChange={(e) =>
+                    setAdmissionForm({
+                      ...admissionForm,
+                      hobbies: e.target.value,
+                    })
+                  }
+                  placeholder="Student hobbies"
+                  rows={3}
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>
+                  Reference Number
+                </Label>
+
+                <Input
+                  value={admissionForm.reference_number}
+                  onChange={(e) =>
+                    setAdmissionForm({
+                      ...admissionForm,
+                      reference_number:
+                        e.target.value,
+                    })
+                  }
+                  placeholder="Optional reference number"
+                  className={inputClass}
+                />
+              </div>
+
+            </div>
+          </div>
+
+
+          {/* ================= STATUS ================= */}
+
+          <div className="space-y-2">
+
+            <Label>
+              Admission Status
+            </Label>
+
+            <Select
+              value={admissionForm.status}
+              onValueChange={(value) =>
+                setAdmissionForm({
+                  ...admissionForm,
+                  status: value,
+                })
+              }
+            >
+
+              <SelectTrigger
+                className={inputClass}
+              >
+                <SelectValue />
+              </SelectTrigger>
+
+              <SelectContent>
+
+                <SelectItem value="pending">
+                  Pending
+                </SelectItem>
+
+                <SelectItem value="approved">
+                  Approved
+                </SelectItem>
+
+                <SelectItem value="rejected">
+                  Rejected
+                </SelectItem>
+
+              </SelectContent>
+
+            </Select>
+
+          </div>
+
+
+          {/* ================= BUTTONS ================= */}
+
+          <div className="flex flex-col gap-2 sm:flex-row">
+
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="bg-blue-600 text-white hover:bg-blue-700"
+            >
+
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : editingType === 'new-admission' ? (
+                'Create Admission'
+              ) : (
+                'Update Admission'
+              )}
+
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={cancelEdit}
+              className="border-blue-200 text-blue-700"
+            >
+              Cancel
+            </Button>
+
+          </div>
+
+        </form>
+
+      </CardContent>
+
+    </Card>
+  )}
+
+
+  {/* ==================== ADMISSION LIST ==================== */}
+
+  <Card className="border-blue-100 shadow-sm overflow-hidden">
+
+    <CardHeader>
+
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+        <div>
+          <CardTitle className="text-blue-900">
+            Admission Applications
+          </CardTitle>
+
+          <CardDescription>
+            Review and manage admission applications.
+          </CardDescription>
+        </div>
+
+        <Button
+          onClick={handleNewAdmission}
+          className="bg-blue-600 text-white hover:bg-blue-700"
+        >
+          + New Admission
+        </Button>
+
+      </div>
+
+    </CardHeader>
+
+
+    <CardContent className="p-0">
+
+      <div className="overflow-x-auto">
+
+        <table className="min-w-[900px] w-full border-collapse text-sm">
+
+          <thead>
+
+            <tr className="border-b border-blue-100 bg-blue-50">
+
+              <th className="px-4 py-3 text-left font-semibold text-blue-900">
+                Student
+              </th>
+
+              <th className="px-4 py-3 text-left font-semibold text-blue-900">
+                Phone
+              </th>
+
+              <th className="px-4 py-3 text-left font-semibold text-blue-900">
+                Email
+              </th>
+
+              <th className="px-4 py-3 text-left font-semibold text-blue-900">
+                Course
+              </th>
+
+              <th className="px-4 py-3 text-left font-semibold text-blue-900">
+                Class
+              </th>
+
+              <th className="px-4 py-3 text-left font-semibold text-blue-900">
+                Status
+              </th>
+
+              <th className="px-4 py-3 text-left font-semibold text-blue-900">
+                Actions
+              </th>
+
+            </tr>
+
+          </thead>
+
+
+          <tbody>
+
+            {admissions.map((admission) => (
+
+              <tr
+                key={admission.id}
+                className="border-b border-blue-50 hover:bg-yellow-50/30"
+              >
+
+                <td className="px-4 py-3 font-medium">
+                  {admission.student_name}
+                </td>
+
+                <td className="px-4 py-3">
+                  {admission.phone || '-'}
+                </td>
+
+                <td className="px-4 py-3 text-gray-600">
+                  {admission.email || '-'}
+                </td>
+
+                <td className="px-4 py-3">
+                  {admission.course || '-'}
+                </td>
+
+                <td className="px-4 py-3">
+                  {admission.class || '-'}
+                </td>
+
+                <td className="px-4 py-3">
+
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                      admission.status === 'approved'
+                        ? 'bg-green-100 text-green-800'
+                        : admission.status === 'rejected'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}
+                  >
+                    {admission.status}
+                  </span>
+
+                </td>
+
+
+                <td className="px-4 py-3">
+
+                  <div className="flex items-center gap-1">
+
+                    {/* VIEW */}
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        handleViewAdmission(admission)
+                      }
+                      className="h-8 border-blue-200 text-blue-700"
+                    >
+                      View
+                    </Button>
+
+
+                    {/* EDIT */}
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        handleEdit(
+                          admission,
+                          'admission'
+                        )
+                      }
+                      className="h-8 w-8 border-yellow-200 p-0 text-yellow-700 hover:bg-yellow-50"
+                    >
+                      <Edit2 className="h-3.5 w-3.5" />
+                    </Button>
+
+
+                    {/* STATUS */}
+
+                    <Select
+                      value={
+                        admissionStatusForm.id === admission.id
+                          ? admissionStatusForm.status
+                          : admission.status
+                      }
+                      onValueChange={(value) =>
+                        setAdmissionStatusForm({
+                          id: admission.id,
+                          status: value,
+                        })
+                      }
+                    >
+
+                      <SelectTrigger className="h-8 w-[100px] border-blue-100 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+
+                      <SelectContent>
+
+                        <SelectItem value="pending">
+                          Pending
+                        </SelectItem>
+
+                        <SelectItem value="approved">
+                          Approved
+                        </SelectItem>
+
+                        <SelectItem value="rejected">
+                          Rejected
+                        </SelectItem>
+
+                      </SelectContent>
+
+                    </Select>
+
+
+                    {admissionStatusForm.id === admission.id &&
+                      admissionStatusForm.status !== admission.status && (
+
+                        <Button
+                          size="sm"
+                          onClick={handleUpdateAdmissionStatus}
+                          disabled={isSubmitting}
+                          className="h-8 bg-blue-600 px-2 text-xs text-white hover:bg-blue-700"
+                        >
+                          Save
+                        </Button>
+
+                      )}
+
+
+                    {/* DELETE */}
+
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() =>
+                        confirmDelete(
+                          admission.id,
+                          'admissions'
+                        )
+                      }
+                      className="h-8 w-8 p-0"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+
+                  </div>
+
+                </td>
+
+              </tr>
+
+            ))}
+
+          </tbody>
+
+        </table>
+
+
+        {admissions.length === 0 && (
+
+          <div className="py-12 text-center text-gray-400">
+            No admission applications yet.
+          </div>
+
+        )}
+
+      </div>
+
+    </CardContent>
+
+  </Card>
+
+</TabsContent>
+
+          {/* ==================== CONTACT / LEADS ==================== */}
+          <TabsContent value="leads" className="space-y-6">
+            <Card className="border-blue-100 shadow-sm overflow-hidden">
+              <CardHeader>
+                <CardTitle className="text-blue-900">Contact Form Submissions</CardTitle>
+                <CardDescription>Enquiries submitted through the Contact Us form</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="min-w-[680px] w-full border-collapse text-sm">
+                    <thead>
+                      <tr className="border-b border-blue-100 bg-blue-50">
+                        <th className="px-4 py-3 text-left font-semibold text-blue-900">Name</th>
+                        <th className="px-4 py-3 text-left font-semibold text-blue-900">Phone</th>
+                        <th className="hidden px-4 py-3 text-left font-semibold text-blue-900 md:table-cell">Email</th>
+                        <th className="px-4 py-3 text-left font-semibold text-blue-900">Course</th>
+                        <th className="hidden px-4 py-3 text-left font-semibold text-blue-900 lg:table-cell">Message</th>
+                        <th className="px-4 py-3 text-left font-semibold text-blue-900">Date</th>
+                        <th className="px-4 py-3 text-left font-semibold text-blue-900">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {leads.map((lead) => (
+                        <tr key={lead.id} className="border-b border-blue-50 hover:bg-yellow-50/30">
+                          <td className="px-4 py-3 font-medium">{lead.name}</td>
+                          <td className="px-4 py-3">{lead.phone}</td>
+                          <td className="hidden px-4 py-3 text-gray-600 md:table-cell">{lead.email || '-'}</td>
+                          <td className="px-4 py-3"><span className="rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">{lead.course}</span></td>
+                          <td className="hidden max-w-[200px] truncate px-4 py-3 text-gray-500 lg:table-cell">{lead.message || '-'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-400">{new Date(lead.created_at).toLocaleDateString()}</td>
+                          <td className="px-4 py-3">
+                            <Button size="sm" variant="destructive" onClick={() => confirmDelete(lead.id, 'leads')} className="h-8 w-8 p-0"><Trash2 className="h-3.5 w-3.5" /></Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {leads.length === 0 && <div className="py-12 text-center text-gray-400">No contact submissions yet.</div>}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+                      {/* ==================== GALLERY ==================== */}
+<TabsContent value="gallery" className="space-y-6">
+  <GallerySection />
+</TabsContent>
+
+          {/* ==================== QUIZZES ==================== */}
+          <TabsContent value="quizzes" className="space-y-6">
+            <QuizSection />
+          </TabsContent>
+      
+        </Tabs>
+      </main>
+
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-md border-blue-100">
+          <DialogHeader>
+            <DialogTitle className="text-blue-900">Delete Item</DialogTitle>
+            <DialogDescription>Are you sure you want to delete this item? This action cannot be undone.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)} className="w-full border-blue-200 text-blue-700 hover:bg-blue-50 sm:w-auto">Cancel</Button>
+            <Button variant="destructive" onClick={handleDelete} className="w-full sm:w-auto">Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* ==================== VIEW ADMISSION ==================== */}
+
+<Dialog
+  open={showAdmissionView}
+  onOpenChange={setShowAdmissionView}
+>
+  <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-4xl overflow-y-auto">
+
+    <DialogHeader>
+
+      <DialogTitle className="text-blue-900">
+        Admission Application
+      </DialogTitle>
+
+      <DialogDescription>
+        Complete admission application details.
+      </DialogDescription>
+
+    </DialogHeader>
+
+
+    {viewingAdmission && (
+
+      <div className="space-y-6">
+
+        {/* Student */}
+
+        <div className="rounded-lg border border-blue-100 p-4">
+
+          <h3 className="mb-4 font-semibold text-blue-900">
+            Student Information
+          </h3>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+
+            <div>
+              <p className="text-xs text-gray-500">
+                Student Name
+              </p>
+
+              <p className="font-medium">
+                {viewingAdmission.student_name || '-'}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-gray-500">
+                Email
+              </p>
+
+              <p className="font-medium">
+                {viewingAdmission.email || '-'}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-gray-500">
+                Phone
+              </p>
+
+              <p className="font-medium">
+                {viewingAdmission.phone || '-'}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-gray-500">
+                Date of Birth
+              </p>
+
+              <p className="font-medium">
+                {viewingAdmission.date_of_birth || '-'}
+              </p>
+            </div>
+
+          </div>
+
+        </div>
+
+
+        {/* Parent */}
+
+        <div className="rounded-lg border border-blue-100 p-4">
+
+          <h3 className="mb-4 font-semibold text-blue-900">
+            Parent / Guardian
+          </h3>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+
+            <div>
+              <p className="text-xs text-gray-500">
+                Parent Name
+              </p>
+
+              <p className="font-medium">
+                {viewingAdmission.parent_name || '-'}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-gray-500">
+                Parent Phone
+              </p>
+
+              <p className="font-medium">
+                {viewingAdmission.parent_phone || '-'}
+              </p>
+            </div>
+
+          </div>
+
+        </div>
+
+
+        {/* Address */}
+
+        <div className="rounded-lg border border-blue-100 p-4">
+
+          <h3 className="mb-4 font-semibold text-blue-900">
+            Address
+          </h3>
+
+          <p className="whitespace-pre-line text-gray-700">
+            {viewingAdmission.address || '-'}
+          </p>
+
+        </div>
+
+
+        {/* Office */}
+
+        <div className="rounded-lg border border-blue-100 p-4">
+
+          <h3 className="mb-4 font-semibold text-blue-900">
+            Office Information
+          </h3>
+
+          <div className="space-y-3">
+
+            <p>
+              <span className="text-xs text-gray-500">
+                Office Address
+              </span>
+              <br />
+              {viewingAdmission.office_address || '-'}
+            </p>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+
+              <p>
+                <span className="text-xs text-gray-500">
+                  Office Phone 1
+                </span>
+                <br />
+                {viewingAdmission.office_phone_1 || '-'}
+              </p>
+
+              <p>
+                <span className="text-xs text-gray-500">
+                  Office Phone 2
+                </span>
+                <br />
+                {viewingAdmission.office_phone_2 || '-'}
+              </p>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        {/* Academic */}
+
+        <div className="rounded-lg border border-blue-100 p-4">
+
+          <h3 className="mb-4 font-semibold text-blue-900">
+            Academic Information
+          </h3>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+
+            <p>
+              <span className="text-xs text-gray-500">
+                Course
+              </span>
+              <br />
+              {viewingAdmission.course || '-'}
+            </p>
+
+            <p>
+              <span className="text-xs text-gray-500">
+                Class
+              </span>
+              <br />
+              {viewingAdmission.class || '-'}
+            </p>
+
+            <p>
+              <span className="text-xs text-gray-500">
+                Previous Qualification
+              </span>
+              <br />
+              {viewingAdmission.previous_qualification || '-'}
+            </p>
+
+            <p>
+              <span className="text-xs text-gray-500">
+                School / College
+              </span>
+              <br />
+              {viewingAdmission.school_college || '-'}
+            </p>
+
+          </div>
+
+        </div>
+
+
+        {/* Subjects */}
+
+        <div className="rounded-lg border border-blue-100 p-4">
+
+          <h3 className="mb-4 font-semibold text-blue-900">
+            Subjects
+          </h3>
+
+          <div className="flex flex-wrap gap-2">
+
+            {Array.isArray(viewingAdmission.subjects) &&
+            viewingAdmission.subjects.length > 0 ? (
+
+              viewingAdmission.subjects.map(
+                (subject: string, index: number) => (
+
+                  <span
+                    key={index}
+                    className="rounded-full bg-blue-100 px-3 py-1 text-sm text-blue-800"
+                  >
+                    {subject}
+                  </span>
+
+                )
+              )
+
+            ) : (
+              <span className="text-gray-500">
+                No subjects specified
+              </span>
+            )}
+
+          </div>
+
+        </div>
+
+
+        {/* Other */}
+
+        <div className="rounded-lg border border-blue-100 p-4">
+
+          <h3 className="mb-4 font-semibold text-blue-900">
+            Other Information
+          </h3>
+
+          <div className="space-y-3">
+
+            <p>
+              <span className="text-xs text-gray-500">
+                Hobbies
+              </span>
+              <br />
+              {viewingAdmission.hobbies || '-'}
+            </p>
+
+            <p>
+              <span className="text-xs text-gray-500">
+                Reference Number
+              </span>
+              <br />
+              {viewingAdmission.reference_number || '-'}
+            </p>
+
+          </div>
+
+        </div>
+
+
+        {/* Status */}
+
+        <div className="flex items-center justify-between rounded-lg bg-blue-50 p-4">
+
+          <span className="font-semibold text-blue-900">
+            Admission Status
+          </span>
+
+          <span
+            className={`rounded-full px-3 py-1 text-sm font-semibold ${
+              viewingAdmission.status === 'approved'
+                ? 'bg-green-100 text-green-800'
+                : viewingAdmission.status === 'rejected'
+                ? 'bg-red-100 text-red-800'
+                : 'bg-yellow-100 text-yellow-800'
+            }`}
+          >
+            {viewingAdmission.status}
+          </span>
+
+        </div>
+
+      </div>
+
+    )}
+
+  </DialogContent>
+</Dialog>
+    </div>
+  );
+}
