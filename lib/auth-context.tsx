@@ -52,7 +52,8 @@ interface AuthContextType {
 
   signUp: (
     email: string,
-    password: string
+    password: string,
+    fullName?: string
   ) => Promise<void>;
 
   signUpStudent: (
@@ -279,7 +280,8 @@ export function AuthProvider({
    */
   const signUp = async (
     email: string,
-    password: string
+    password: string,
+    fullName?: string
   ) => {
     const {
       data: authData,
@@ -287,6 +289,11 @@ export function AuthProvider({
     } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          full_name: fullName?.trim() || '',
+        },
+      },
     });
 
     if (authError) {

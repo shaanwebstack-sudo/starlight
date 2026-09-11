@@ -221,3 +221,20 @@ export interface QuizAttempt {
   started_at: string;
   completed_at: string;
 }
+
+export interface LibraryPayment {
+  id: string;
+  amount: number;
+  payment_date: string;
+  payment_type: string;
+  status: string;
+}
+
+export interface LibraryStudent {
+  id: string;
+  name: string;
+  phone: string;
+  membership_type: string;
+  membership_start: string;
+  membership_end: string;
+}

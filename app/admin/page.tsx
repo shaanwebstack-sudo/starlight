@@ -49,6 +49,7 @@ import {
 import { GalleryUpload } from '@/components/admin/gallery/gallery-upload';
 import { GallerySection } from '@/components/admin/gallery/gallery-section';
 import QuizSection from '@/components/admin/quiz/quiz-section';
+import UsersSection from '@/components/admin/users/users-section';
 export default function AdminPage() {
   const router = useRouter();
   const { user, role, isLoading: authLoading, signOut } = useAuth();
@@ -953,6 +954,9 @@ if (authLoading || isLoading) {
 </TabsTrigger>
             <TabsTrigger value="quizzes" className="shrink-0 gap-1.5 whitespace-nowrap px-2 py-1.5 text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white sm:px-3 sm:text-sm">
               <HelpCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Quizzes
+            </TabsTrigger>
+            <TabsTrigger value="users" className="shrink-0 gap-1.5 whitespace-nowrap px-2 py-1.5 text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white sm:px-3 sm:text-sm">
+              <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Users
             </TabsTrigger>
           </TabsList>
 
@@ -2329,7 +2333,12 @@ if (authLoading || isLoading) {
           <TabsContent value="quizzes" className="space-y-6">
             <QuizSection />
           </TabsContent>
-      
+
+          {/* ==================== USERS ==================== */}
+          <TabsContent value="users" className="space-y-6">
+            <UsersSection />
+          </TabsContent>
+
         </Tabs>
       </main>
 
