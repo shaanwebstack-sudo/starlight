@@ -7,8 +7,15 @@ import {
   useRef,
   useState,
 } from 'react';
-import { User } from '@supabase/supabase-js';
+
+import {
+  User,
+  Session,
+  AuthChangeEvent,
+} from '@supabase/supabase-js';
+
 import { createClient } from '@/lib/supabase/client';
+import type { StudentCategory } from '@/lib/types';
 
 export type UserRole = 'admin' | 'student' | null;
 
@@ -24,6 +31,20 @@ export interface StudentProfile {
   subjects: string[];
   address: string | null;
   is_approved: boolean;
+  is_active: boolean;
+  category: StudentCategory | null;
+  exam: string | null;
+  level: string | null;
+  stream: string | null;
+  session: string | null;
+  batch: string | null;
+  batch_timing: string | null;
+  duration: string | null;
+  computer_course: string | null;
+  parent_name: string | null;
+  parent_phone: string | null;
+  date_of_birth: string | null;
+  application_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -42,6 +63,18 @@ interface SignUpStudentData {
   enrollment_number?: string;
   subjects?: string[];
   address?: string;
+  category?: StudentCategory;
+  exam?: string;
+  level?: string;
+  stream?: string;
+  session?: string;
+  batch?: string;
+  batch_timing?: string;
+  duration?: string;
+  computer_course?: string;
+  parent_name?: string;
+  parent_phone?: string;
+  date_of_birth?: string;
 }
 
 interface AuthContextType {
@@ -87,23 +120,31 @@ export function AuthProvider({
     useState<StudentProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Keep one Supabase browser client instance.
+  /*
+   * Keep one Supabase browser client instance.
+   */
   const supabase = useRef(createClient()).current;
 
   /**
    * Fetch the logged-in user's role and student profile.
    */
-  const fetchRoleAndProfile = async (userId: string) => {
+  const fetchRoleAndProfile = async (
+    userId: string
+  ) => {
     try {
       /*
-       * First get the user's role.
+       * ------------------------------------------------------
+       * 1. Fetch user's role
+       * ------------------------------------------------------
        */
-      const { data: roleRaw, error: roleFetchError } =
-        await supabase
-          .from('user_roles')
-          .select('user_id, role, created_at')
-          .eq('user_id', userId)
-          .maybeSingle();
+      const {
+        data: roleRaw,
+        error: roleFetchError,
+      } = await supabase
+        .from('user_roles')
+        .select('user_id, role, created_at')
+        .eq('user_id', userId)
+        .maybeSingle();
 
       if (roleFetchError) {
         console.error(
@@ -125,8 +166,9 @@ export function AuthProvider({
       setRole(detectedRole);
 
       /*
-       * If the user is a student,
-       * fetch their student profile.
+       * ------------------------------------------------------
+       * 2. Fetch student profile
+       * ------------------------------------------------------
        */
       if (detectedRole === 'student') {
         const {
@@ -172,9 +214,6 @@ export function AuthProvider({
 
   /**
    * Manually refresh the current user's role/profile.
-   *
-   * This is useful after admin approval or
-   * when the student dashboard needs fresh data.
    */
   const refreshRoleAndProfile = async () => {
     if (!user) {
@@ -193,6 +232,11 @@ export function AuthProvider({
   useEffect(() => {
     let mounted = true;
 
+    /*
+     * --------------------------------------------------------
+     * Initial authentication
+     * --------------------------------------------------------
+     */
     const initializeAuth = async () => {
       try {
         const {
@@ -201,12 +245,15 @@ export function AuthProvider({
 
         if (!mounted) return;
 
-        const currentUser = session?.user ?? null;
+        const currentUser =
+          session?.user ?? null;
 
         setUser(currentUser);
 
         if (currentUser) {
-          await fetchRoleAndProfile(currentUser.id);
+          await fetchRoleAndProfile(
+            currentUser.id
+          );
         } else {
           setRole(null);
           setProfile(null);
@@ -231,11 +278,28 @@ export function AuthProvider({
 
     initializeAuth();
 
+    /*
+     * --------------------------------------------------------
+     * Authentication state listener
+     *
+     * Explicit types prevent:
+     *
+     * TS7006:
+     * Parameter 'event' implicitly has an 'any' type.
+     *
+     * TS7006:
+     * Parameter 'session' implicitly has an 'any' type.
+     * --------------------------------------------------------
+     */
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        const currentUser = session?.user ?? null;
+      async (
+        event: AuthChangeEvent,
+        session: Session | null
+      ) => {
+        const currentUser =
+          session?.user ?? null;
 
         if (!mounted) return;
 
@@ -251,7 +315,9 @@ export function AuthProvider({
             event === 'TOKEN_REFRESHED' ||
             event === 'INITIAL_SESSION'
           ) {
-            await fetchRoleAndProfile(currentUser.id);
+            await fetchRoleAndProfile(
+              currentUser.id
+            );
           }
         } else {
           setRole(null);
@@ -262,6 +328,11 @@ export function AuthProvider({
       }
     );
 
+    /*
+     * --------------------------------------------------------
+     * Cleanup
+     * --------------------------------------------------------
+     */
     return () => {
       mounted = false;
       subscription.unsubscribe();
@@ -291,7 +362,8 @@ export function AuthProvider({
       password,
       options: {
         data: {
-          full_name: fullName?.trim() || '',
+          full_name:
+            fullName?.trim() || '',
         },
       },
     });
@@ -306,6 +378,9 @@ export function AuthProvider({
       );
     }
 
+    /*
+     * Create admin role.
+     */
     const {
       error: roleError,
     } = await supabase
@@ -325,49 +400,238 @@ export function AuthProvider({
   /**
    * STUDENT SIGNUP
    *
-   * Every new student starts as:
-   *
-   * role = student
-   * is_approved = false
-   *
-   * Admin must approve the student later.
+   * Flow:
+   * 1. Creates Auth user
+   * 2. Assigns student role
+   * 3. Creates admissions application
+   * 4. Student profile is created later during approval
    */
-const signUpStudent = async (
-  email: string,
-  password: string,
-  data: SignUpStudentData
-) => {
-  const normalizedEmail = email.trim().toLowerCase();
+  const signUpStudent = async (
+    email: string,
+    password: string,
+    data: SignUpStudentData
+  ) => {
+    const normalizedEmail =
+      email.trim().toLowerCase();
 
-  const { data: authData, error: authError } =
-    await supabase.auth.signUp({
+    /*
+     * --------------------------------------------------------
+     * 1. Create Auth user
+     * --------------------------------------------------------
+     */
+    const {
+      data: authData,
+      error: authError,
+    } = await supabase.auth.signUp({
       email: normalizedEmail,
       password,
-
       options: {
         data: {
-          full_name: data.full_name?.trim() || '',
-          phone: data.phone?.trim() || '',
-          course: data.course?.trim() || '',
-          class_grade: data.class_grade?.trim() || '',
-          enrollment_number:
-            data.enrollment_number?.trim() || '',
-          subjects: data.subjects || [],
-          address: data.address?.trim() || '',
+          full_name:
+            data.full_name?.trim() || '',
+          phone:
+            data.phone?.trim() || '',
         },
       },
     });
 
-  if (authError) {
-    throw new Error(authError.message);
-  }
+    if (authError) {
+      throw new Error(authError.message);
+    }
 
-  if (!authData.user) {
-    throw new Error(
-      'Student registration failed: no user was created.'
-    );
-  }
-};
+    if (!authData.user) {
+      throw new Error(
+        'Student registration failed: no user was created.'
+      );
+    }
+
+    /*
+     * --------------------------------------------------------
+     * 2. Ensure student role exists
+     * --------------------------------------------------------
+     *
+     * A database trigger may also create this row.
+     * Duplicate errors are intentionally ignored.
+     */
+    try {
+      const {
+        error: roleInsertError,
+      } = await supabase
+        .from('user_roles')
+        .insert([
+          {
+            user_id: authData.user.id,
+            role: 'student',
+          } as never,
+        ]);
+
+      if (roleInsertError) {
+        const msg =
+          roleInsertError.message || '';
+
+        if (
+          !msg
+            .toLowerCase()
+            .includes('duplicate') &&
+          !msg
+            .toLowerCase()
+            .includes('unique')
+        ) {
+          console.warn(
+            '[signUpStudent] user_roles insert warning:',
+            roleInsertError
+          );
+        }
+      }
+    } catch (err) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : String(err);
+
+      if (
+        !msg
+          .toLowerCase()
+          .includes('duplicate') &&
+        !msg
+          .toLowerCase()
+          .includes('unique')
+      ) {
+        console.warn(
+          '[signUpStudent] user_roles insert warning:',
+          msg
+        );
+      }
+    }
+
+    /*
+     * --------------------------------------------------------
+     * 3. Build legacy course value
+     * --------------------------------------------------------
+     */
+    let legacyCourse =
+      data.course?.trim() || '';
+
+    if (
+      !legacyCourse &&
+      data.category
+    ) {
+      if (
+        data.category ===
+          'government_exams' &&
+        data.exam
+      ) {
+        legacyCourse = data.exam;
+      } else if (
+        data.category ===
+          'computer_courses' &&
+        data.computer_course
+      ) {
+        legacyCourse =
+          data.computer_course;
+      } else if (
+        data.category === 'nios' &&
+        data.level
+      ) {
+        legacyCourse =
+          `NIOS ${data.level}`;
+      } else if (
+        data.category ===
+          'open_schooling' &&
+        data.level
+      ) {
+        legacyCourse =
+          `Open Schooling ${data.level}`;
+      }
+    }
+
+    /*
+     * --------------------------------------------------------
+     * 4. Create pending admissions application
+     * --------------------------------------------------------
+     */
+    const {
+      error: admError,
+    } = await supabase
+      .from('admissions')
+      .insert([
+        {
+          student_name:
+            data.full_name?.trim() || '',
+
+          email: normalizedEmail,
+
+          phone:
+            data.phone?.trim() || null,
+
+          parent_name:
+            data.parent_name?.trim() || null,
+
+          parent_phone:
+            data.parent_phone?.trim() || null,
+
+          address:
+            data.address?.trim() || null,
+
+          date_of_birth:
+            data.date_of_birth || null,
+
+          course:
+            legacyCourse || null,
+
+          subjects:
+            data.subjects &&
+            data.subjects.length > 0
+              ? data.subjects
+              : null,
+
+          category:
+            data.category || null,
+
+          exam:
+            data.exam?.trim() || null,
+
+          level:
+            data.level?.trim() || null,
+
+          stream:
+            data.stream?.trim() || null,
+
+          session:
+            data.session?.trim() || null,
+
+          batch:
+            data.batch?.trim() || null,
+
+          batch_timing:
+            data.batch_timing?.trim() || null,
+
+          duration:
+            data.duration?.trim() || null,
+
+          computer_course:
+            data.computer_course?.trim() ||
+            null,
+
+          status: 'pending',
+
+          message: null,
+        } as never,
+      ]);
+
+    if (admError) {
+      console.error(
+        '[signUpStudent] admissions insert error:',
+        admError
+      );
+
+      /*
+       * Do not fail signup completely.
+       * The user can still login and the admin
+       * can create the application manually.
+       */
+    }
+  };
 
   /**
    * LOGIN
@@ -405,6 +669,11 @@ const signUpStudent = async (
     setProfile(null);
   };
 
+  /*
+   * --------------------------------------------------------
+   * Context Provider
+   * --------------------------------------------------------
+   */
   return (
     <AuthContext.Provider
       value={{

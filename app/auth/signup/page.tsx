@@ -7,7 +7,6 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 
 import {
   Card,
@@ -17,14 +16,20 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 
+import DynamicCategoryForm, {
+  type CompleteFormValue,
+} from '@/components/ui/dynamic-category-form';
+
 import { useAuth } from '@/lib/auth-context';
 import { useToast } from '@/hooks/use-toast';
+import type { StudentCategory } from '@/lib/types';
 
 import {
-  Loader as Loader2,
+  Loader2,
   GraduationCap,
   Shield,
   User,
+  ArrowRight,
 } from 'lucide-react';
 
 type SignupMode = 'student' | 'admin';
@@ -32,31 +37,15 @@ type SignupMode = 'student' | 'admin';
 export default function SignupPage() {
   const router = useRouter();
 
-  const {
-    signUp,
-    signUpStudent,
-    user,
-    role,
-    isLoading: authLoading,
-  } = useAuth();
-
+  const { signUp, signUpStudent, user, role, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
 
   const [mode, setMode] = useState<SignupMode>('student');
 
-  // Account fields
+  // Account fields (shared)
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-
-  // Student profile fields
-  const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [course, setCourse] = useState('');
-  const [classGrade, setClassGrade] = useState('');
-  const [enrollmentNumber, setEnrollmentNumber] = useState('');
-  const [subjects, setSubjects] = useState('');
-  const [address, setAddress] = useState('');
 
   // Admin fields
   const [adminName, setAdminName] = useState('');
@@ -81,18 +70,29 @@ export default function SignupPage() {
     router.replace('/');
   }, [authLoading, user, role, router]);
 
-  const handleSubmitStudent = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!fullName.trim()) {
+  const validatePasswords = () => {
+    if (password.length < 6) {
       toast({
-        title: 'Full Name Required',
-        description: 'Please enter your full name.',
+        title: 'Invalid Password',
+        description: 'Password must be at least 6 characters long.',
         variant: 'destructive',
       });
-      return;
+      return false;
     }
 
+    if (password !== confirmPassword) {
+      toast({
+        title: 'Passwords Do Not Match',
+        description: 'Please make sure both passwords are the same.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmitStudent = async (categoryData: CompleteFormValue) => {
     if (!email.trim()) {
       toast({
         title: 'Email Required',
@@ -102,48 +102,56 @@ export default function SignupPage() {
       return;
     }
 
-    if (password.length < 6) {
+    if (!categoryData.full_name.trim()) {
       toast({
-        title: 'Invalid Password',
-        description: 'Password must be at least 6 characters long.',
+        title: 'Full Name Required',
+        description: 'Please enter your full name.',
         variant: 'destructive',
       });
       return;
     }
 
-    if (password !== confirmPassword) {
+    if (!categoryData.category) {
       toast({
-        title: 'Passwords Do Not Match',
-        description: 'Please make sure both passwords are the same.',
+        title: 'Category Required',
+        description: 'Please select a category for your application.',
         variant: 'destructive',
       });
       return;
     }
+
+    if (!validatePasswords()) return;
 
     setIsLoading(true);
 
     try {
-      const subjectsArray = subjects
-        ? subjects
-            .split(',')
-            .map((subject) => subject.trim())
-            .filter(Boolean)
+      const subjectsArray = categoryData.subjects && categoryData.subjects.length > 0
+        ? categoryData.subjects
         : [];
 
       await signUpStudent(email.trim(), password, {
-        full_name: fullName.trim(),
-        phone: phone.trim() || undefined,
-        course: course.trim() || undefined,
-        class_grade: classGrade.trim() || undefined,
-        enrollment_number: enrollmentNumber.trim() || undefined,
+        full_name: categoryData.full_name.trim(),
+        phone: categoryData.phone?.trim() || undefined,
         subjects: subjectsArray.length > 0 ? subjectsArray : undefined,
-        address: address.trim() || undefined,
+        address: categoryData.address?.trim() || undefined,
+        category: (categoryData.category as StudentCategory) || undefined,
+        exam: categoryData.exam?.trim() || undefined,
+        level: categoryData.level?.trim() || undefined,
+        stream: categoryData.stream?.trim() || undefined,
+        session: categoryData.session?.trim() || undefined,
+        batch: categoryData.batch?.trim() || undefined,
+        batch_timing: categoryData.batch_timing?.trim() || undefined,
+        duration: categoryData.duration?.trim() || undefined,
+        computer_course: categoryData.computer_course?.trim() || undefined,
+        parent_name: categoryData.parent_name?.trim() || undefined,
+        parent_phone: categoryData.parent_phone?.trim() || undefined,
+        date_of_birth: categoryData.date_of_birth || undefined,
       });
 
       toast({
-        title: 'Account Created Successfully',
+        title: 'Application Submitted Successfully',
         description:
-          'Please confirm your email address and then login. Your account will remain pending until an administrator approves it.',
+          'Your registration is complete. Please confirm your email and login. An administrator will review your application and your enrollment number will be generated upon approval.',
       });
 
       router.replace('/auth/login');
@@ -195,23 +203,7 @@ export default function SignupPage() {
       return;
     }
 
-    if (password.length < 6) {
-      toast({
-        title: 'Invalid Password',
-        description: 'Password must be at least 6 characters long.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      toast({
-        title: 'Passwords Do Not Match',
-        description: 'Please make sure both passwords are the same.',
-        variant: 'destructive',
-      });
-      return;
-    }
+    if (!validatePasswords()) return;
 
     setIsLoading(true);
 
@@ -260,9 +252,7 @@ export default function SignupPage() {
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-yellow-50 via-white to-blue-50">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-          <p className="text-sm text-gray-500">
-            Checking your account...
-          </p>
+          <p className="text-sm text-gray-500">Checking your account...</p>
         </div>
       </div>
     );
@@ -273,22 +263,19 @@ export default function SignupPage() {
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-yellow-50 via-white to-blue-50">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-          <p className="text-sm text-gray-500">
-            Redirecting to your dashboard...
-          </p>
+          <p className="text-sm text-gray-500">Redirecting to your dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-yellow-50 via-white to-blue-50 px-4 py-10">
-      <div className="w-full max-w-2xl space-y-6">
-
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-white to-blue-50 px-4 py-10">
+      <div className="mx-auto w-full max-w-4xl space-y-6">
         {/* Header */}
         <div className="text-center">
           <div className="flex justify-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 shadow-lg shadow-blue-200">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-red-600 shadow-lg shadow-blue-200">
               <GraduationCap className="h-9 w-9 text-white" />
             </div>
           </div>
@@ -298,12 +285,12 @@ export default function SignupPage() {
           </h1>
 
           <p className="mt-2 text-gray-500">
-            Create your account
+            Create your account and submit your application
           </p>
         </div>
 
         {/* Mode Toggle */}
-        <div className="flex justify-center gap-2 rounded-xl bg-blue-50 p-1.5">
+        <div className="flex justify-center gap-2 rounded-xl bg-blue-50 p-1.5 max-w-sm mx-auto">
           <button
             type="button"
             onClick={() => setMode('student')}
@@ -332,254 +319,118 @@ export default function SignupPage() {
 
         {/* Student Signup Card */}
         {mode === 'student' && (
-          <Card className="border-blue-100 shadow-xl shadow-blue-100/50">
-            <CardHeader>
-              <CardTitle className="text-blue-900">
-                Student Registration
-              </CardTitle>
-              <CardDescription>
-                Create your student account to access the
-                academy dashboard and online tests.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form
-                onSubmit={handleSubmitStudent}
-                className="space-y-6"
-              >
-                <div className="space-y-4">
-                  <div>
-                    <h2 className="text-sm font-semibold text-blue-900">
-                      Account Information
-                    </h2>
-                    <p className="text-xs text-gray-500">
-                      These details will be used to login to
-                      your student account.
-                    </p>
-                  </div>
+          <Card className="border-blue-100 shadow-xl shadow-blue-100/50 overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-red-600 p-6 text-white">
+              <h2 className="text-2xl font-bold">Student Registration</h2>
+              <p className="mt-1 text-blue-100 text-sm">
+                Fill out the form to apply for admission. Your enrollment number will be generated after admin approval.
+              </p>
+            </div>
 
+            <CardContent className="p-5 md:p-6 space-y-6">
+              {/* ===== ACCOUNT INFORMATION ===== */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2 pb-2 border-b border-gray-100">
+                  <span className="w-1.5 h-5 bg-gradient-to-b from-blue-600 to-red-600 rounded-full" />
+                  Account Information
+                </h3>
+
+                <div className="space-y-2">
+                  <Label htmlFor="student-email">Email *</Label>
+                  <Input
+                    id="student-email"
+                    type="email"
+                    autoComplete="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={isLoading}
+                    placeholder="student@example.com"
+                    className={`h-11 ${inputClass}`}
+                  />
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="student-email">
-                      Email *
-                    </Label>
+                    <Label htmlFor="student-password">Password *</Label>
                     <Input
-                      id="student-email"
-                      type="email"
-                      autoComplete="email"
-                      value={email}
-                      onChange={(e) =>
-                        setEmail(e.target.value)
-                      }
+                      id="student-password"
+                      type="password"
+                      autoComplete="new-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       required
                       disabled={isLoading}
-                      placeholder="student@example.com"
-                      className={inputClass}
+                      minLength={6}
+                      placeholder="At least 6 characters"
+                      className={`h-11 ${inputClass}`}
                     />
                   </div>
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="student-password">
-                        Password *
-                      </Label>
-                      <Input
-                        id="student-password"
-                        type="password"
-                        autoComplete="new-password"
-                        value={password}
-                        onChange={(e) =>
-                          setPassword(e.target.value)
-                        }
-                        required
-                        disabled={isLoading}
-                        minLength={6}
-                        placeholder="At least 6 characters"
-                        className={inputClass}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="student-confirm-password">
-                        Confirm Password *
-                      </Label>
-                      <Input
-                        id="student-confirm-password"
-                        type="password"
-                        autoComplete="new-password"
-                        value={confirmPassword}
-                        onChange={(e) =>
-                          setConfirmPassword(e.target.value)
-                        }
-                        required
-                        disabled={isLoading}
-                        minLength={6}
-                        placeholder="Confirm your password"
-                        className={inputClass}
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="student-confirm-password">
+                      Confirm Password *
+                    </Label>
+                    <Input
+                      id="student-confirm-password"
+                      type="password"
+                      autoComplete="new-password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      disabled={isLoading}
+                      minLength={6}
+                      placeholder="Confirm your password"
+                      className={`h-11 ${inputClass}`}
+                    />
                   </div>
                 </div>
+              </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <h2 className="text-sm font-semibold text-blue-900">
-                      Student Information
-                    </h2>
-                    <p className="text-xs text-gray-500">
-                      Provide your academic and contact
-                      information.
-                    </p>
-                  </div>
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="student-fullname">
-                        Full Name *
-                      </Label>
-                      <Input
-                        id="student-fullname"
-                        value={fullName}
-                        onChange={(e) =>
-                          setFullName(e.target.value)
-                        }
-                        required
-                        disabled={isLoading}
-                        placeholder="e.g. Rahul Sharma"
-                        className={inputClass}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="student-phone">
-                        Phone
-                      </Label>
-                      <Input
-                        id="student-phone"
-                        type="tel"
-                        autoComplete="tel"
-                        value={phone}
-                        onChange={(e) =>
-                          setPhone(e.target.value)
-                        }
-                        disabled={isLoading}
-                        placeholder="+91 98765 43210"
-                        className={inputClass}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="student-enrollment">
-                        Enrollment Number
-                      </Label>
-                      <Input
-                        id="student-enrollment"
-                        value={enrollmentNumber}
-                        onChange={(e) =>
-                          setEnrollmentNumber(e.target.value)
-                        }
-                        disabled={isLoading}
-                        placeholder="e.g. VEA-2026-001"
-                        className={inputClass}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="student-course">
-                        Course
-                      </Label>
-                      <Input
-                        id="student-course"
-                        value={course}
-                        onChange={(e) =>
-                          setCourse(e.target.value)
-                        }
-                        disabled={isLoading}
-                        placeholder="e.g. NIOS 10th, CBSE 12th"
-                        className={inputClass}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="student-class">
-                        Class / Grade
-                      </Label>
-                      <Input
-                        id="student-class"
-                        value={classGrade}
-                        onChange={(e) =>
-                          setClassGrade(e.target.value)
-                        }
-                        disabled={isLoading}
-                        placeholder="e.g. 10th, 12th, Foundation"
-                        className={inputClass}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="student-subjects">
-                        Subjects
-                      </Label>
-                      <Input
-                        id="student-subjects"
-                        value={subjects}
-                        onChange={(e) =>
-                          setSubjects(e.target.value)
-                        }
-                        disabled={isLoading}
-                        placeholder="Math, Science, English"
-                        className={inputClass}
-                      />
-                    </div>
-                    <div className="space-y-2 sm:col-span-2">
-                      <Label htmlFor="student-address">
-                        Address
-                      </Label>
-                      <Textarea
-                        id="student-address"
-                        value={address}
-                        onChange={(e) =>
-                          setAddress(e.target.value)
-                        }
-                        disabled={isLoading}
-                        placeholder="Your full address"
-                        rows={3}
-                        className={inputClass}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-                  <div className="flex gap-3">
-                    <div className="mt-0.5 shrink-0">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-100 text-yellow-700">
-                        ⏳
-                      </span>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-semibold text-yellow-900">
-                        Admin Approval Required
-                      </h3>
-                      <p className="mt-1 text-xs leading-5 text-yellow-800">
-                        After registration, your account will
-                        remain pending until an administrator
-                        approves it. You will be able to access
-                        quizzes and other restricted features
-                        after approval.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <Button
-                  type="submit"
-                  className="w-full bg-blue-600 text-white hover:bg-blue-700"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
+              {/* ===== PERSONAL + CATEGORY FIELDS ===== */}
+              <DynamicCategoryForm
+                mode="signup"
+                isLoading={isLoading}
+                onSubmit={handleSubmitStudent}
+                submitLabel={
+                  isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating student account...
+                      Submitting application...
                     </>
                   ) : (
-                    'Create Student Account'
-                  )}
-                </Button>
-              </form>
+                    <>
+                      Submit Application
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </>
+                  )
+                }
+                courses={[]}
+              />
+
+              {/* Info Notice */}
+              <div className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-5">
+                <div className="flex gap-4">
+                  <div className="mt-0.5 shrink-0">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-100 text-2xl">
+                      ⏳
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-amber-900">
+                      Application Review Process
+                    </h3>
+                    <p className="mt-1 text-xs leading-relaxed text-amber-800">
+                      After you submit your application, it will be reviewed by our
+                      administration team. Once approved:
+                    </p>
+                    <ul className="mt-2 space-y-1 text-xs text-amber-800 list-disc pl-5">
+                      <li>Your student account will be activated</li>
+                      <li>A unique enrollment number will be generated (e.g. ST-0001)</li>
+                      <li>You will gain access to the dashboard, courses, and quizzes</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -588,40 +439,30 @@ export default function SignupPage() {
         {mode === 'admin' && (
           <Card className="border-blue-100 shadow-xl shadow-blue-100/50">
             <CardHeader>
-              <CardTitle className="text-blue-900">
-                Admin Registration
-              </CardTitle>
+              <CardTitle className="text-blue-900">Admin Registration</CardTitle>
               <CardDescription>
-                Create an administrator account to manage the
-                academy dashboard, courses, students, and more.
+                Create an administrator account to manage the academy dashboard,
+                courses, students, and more.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form
-                onSubmit={handleSubmitAdmin}
-                className="space-y-6"
-              >
+              <form onSubmit={handleSubmitAdmin} className="space-y-6">
                 <div className="space-y-4">
                   <div>
                     <h2 className="text-sm font-semibold text-blue-900">
                       Account Information
                     </h2>
                     <p className="text-xs text-gray-500">
-                      These details will be used to login to
-                      your admin account.
+                      These details will be used to login to your admin account.
                     </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="admin-name">
-                      Full Name *
-                    </Label>
+                    <Label htmlFor="admin-name">Full Name *</Label>
                     <Input
                       id="admin-name"
                       value={adminName}
-                      onChange={(e) =>
-                        setAdminName(e.target.value)
-                      }
+                      onChange={(e) => setAdminName(e.target.value)}
                       required
                       disabled={isLoading}
                       placeholder="e.g. Hemant Singh"
@@ -630,17 +471,13 @@ export default function SignupPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="admin-email">
-                      Email *
-                    </Label>
+                    <Label htmlFor="admin-email">Email *</Label>
                     <Input
                       id="admin-email"
                       type="email"
                       autoComplete="email"
                       value={email}
-                      onChange={(e) =>
-                        setEmail(e.target.value)
-                      }
+                      onChange={(e) => setEmail(e.target.value)}
                       required
                       disabled={isLoading}
                       placeholder="admin@starlightacademy.com"
@@ -650,17 +487,13 @@ export default function SignupPage() {
 
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="admin-password">
-                        Password *
-                      </Label>
+                      <Label htmlFor="admin-password">Password *</Label>
                       <Input
                         id="admin-password"
                         type="password"
                         autoComplete="new-password"
                         value={password}
-                        onChange={(e) =>
-                          setPassword(e.target.value)
-                        }
+                        onChange={(e) => setPassword(e.target.value)}
                         required
                         disabled={isLoading}
                         minLength={6}
@@ -677,9 +510,7 @@ export default function SignupPage() {
                         type="password"
                         autoComplete="new-password"
                         value={confirmPassword}
-                        onChange={(e) =>
-                          setConfirmPassword(e.target.value)
-                        }
+                        onChange={(e) => setConfirmPassword(e.target.value)}
                         required
                         disabled={isLoading}
                         minLength={6}
@@ -700,11 +531,9 @@ export default function SignupPage() {
                         Admin Access
                       </h3>
                       <p className="mt-1 text-xs leading-5 text-red-800">
-                        Admin accounts have full control over
-                        courses, blogs, notices, students,
-                        admissions, and gallery. Only create
-                        an admin account if you are authorized
-                        to manage this academy.
+                        Admin accounts have full control over courses, blogs,
+                        notices, students, admissions, and gallery. Only create an
+                        admin account if you are authorized to manage this academy.
                       </p>
                     </div>
                   </div>
@@ -712,7 +541,7 @@ export default function SignupPage() {
 
                 <Button
                   type="submit"
-                  className="w-full bg-blue-600 text-white hover:bg-blue-700"
+                  className="w-full bg-blue-600 text-white hover:bg-blue-700 h-12 rounded-xl"
                   disabled={isLoading}
                 >
                   {isLoading ? (

@@ -3,94 +3,125 @@ import AdmissionForm from '@/components/admission-form';
 
 export const metadata: Metadata = {
   title:
-    'Admission Open 2026 | NIOS, UG, PG & Professional Courses in Rohini Delhi | Starlight Academy',
+    'Admissions Open 2026 | Starlight Academy | Competitive Exams, NIOS & Academic Courses in Rohini',
 
   description:
-    'Admissions Open 2026 at Starlight Academy, Rohini Sector 5, Delhi. Apply for NIOS, NIOS On-Demand, Undergraduate, Postgraduate, Teacher Training, Healthcare and Paramedical Courses. Get expert admission guidance and career counseling.',
+    'Admissions are open at Starlight Academy, Rohini, Delhi. Apply for competitive exam preparation, NIOS and open schooling, academic courses, English and computer courses. Get expert guidance and start your educational journey with Starlight Academy.',
 
   keywords: [
     // Brand
-    'Vihaan Education Academy',
     'Starlight Academy',
+    'Starlight Academy Rohini',
+    'Starlight Academy Delhi',
+    'Starlight Academy Admission',
 
-    // NIOS
-    'NIOS Admission',
-    'NIOS Admission Delhi',
+    // Admission
+    'Starlight Academy Admission',
+    'Admission Open 2026',
+    'Admissions Open 2026',
+    'Admission Form 2026',
+    'Education Admission Rohini',
+    'Admission in Rohini Delhi',
+    'Education Academy Rohini',
+
+    // Competitive Exams
+    'Competitive Exam Coaching Rohini',
+    'Competitive Exam Coaching Delhi',
+    'Government Exam Preparation Rohini',
+    'Government Exam Coaching Delhi',
+    'SSC Coaching Rohini',
+    'SSC Coaching Delhi',
+    'CGL Coaching Rohini',
+    'CHSL Coaching Rohini',
+    'Delhi Police Coaching Rohini',
+    'Banking Exam Coaching Rohini',
+    'CTET Coaching Rohini',
+    'DSSSB Coaching Rohini',
+    'KVS Coaching Rohini',
+    'NVS Coaching Rohini',
+    'NDA Coaching Rohini',
+    'CUET Coaching Rohini',
+    'CLAT Coaching Rohini',
+
+    // NIOS / Open Schooling
     'NIOS Admission Rohini',
-    'NIOS On Demand',
-    'NIOS On Demand Admission',
-    'NIOS 10th Admission',
-    'NIOS 12th Admission',
-    'Open School Admission',
+    'NIOS Admission Delhi',
+    'NIOS 10th Admission Delhi',
+    'NIOS 12th Admission Delhi',
+    'NIOS Coaching Rohini',
+    'Open School Admission Rohini',
+    'Open Schooling Delhi',
+    'Open School Coaching Rohini',
+    'NIOS Student Guidance',
 
-    // UG
-    'B.A Admission',
-    'B.Sc Admission',
-    'B.Tech Admission',
-    'BBA Admission',
+    // Academic Education
+    'Academic Coaching Rohini',
+    'School Coaching Rohini',
+    'School Education Rohini',
+    'Science Coaching Rohini',
+    'Commerce Coaching Rohini',
+    'Humanities Coaching Rohini',
 
-    // PG
-    'M.A Admission',
-    'M.Sc Admission',
-    'MBA Admission',
+    // English
+    'English Classes Rohini',
+    'English Coaching Rohini',
+    'English Classes Delhi',
+    'School of English Rohini',
+    'Spoken English Rohini',
 
-    // Teacher Training
-    'B.Ed Admission',
-    'JBT Admission',
-
-    // Healthcare
-    'MLT Admission',
-    'Optometry Course',
-    'Radiology Course',
-    'Healthcare Courses',
-    'Paramedical Courses',
+    // Computer Courses
+    'Computer Courses Rohini',
+    'Computer Course Delhi',
+    'Computer Classes Rohini',
+    'Computer Training Rohini',
+    'Basic Computer Course Rohini',
 
     // Local SEO
-    'Admission Rohini',
-    'Admission Rohini Sector 5',
-    'Admission Delhi',
-    'Career Counseling Rohini',
-    'Education Academy Rohini',
-    'Education Academy Delhi',
-    'Library Rohini',
-    'Library Membership Rohini',
-
-    // Generic
-    'Admission Open 2026',
-    'Career Counseling',
-    'Admission Guidance',
-    'Student Counseling'
+    'Education Institute Rohini',
+    'Coaching Institute Rohini',
+    'Coaching Institute Delhi',
+    'Best Coaching Institute Rohini',
+    'Study Centre Rohini',
+    'Learning Centre Rohini',
+    'Education Centre Delhi',
   ],
 
   openGraph: {
     title:
-      'Admission Open 2026 | Starlight Academy',
+      'Admissions Open 2026 | Starlight Academy Rohini Delhi',
+
     description:
-      'Apply online for NIOS, UG, PG, Teacher Training, Healthcare and Professional Courses. Get admission guidance and career counseling in Rohini, Delhi.',
-    url: 'https://www.vihaanacademy.com/admission',
+      'Apply to Starlight Academy for competitive exam preparation, NIOS and open schooling, academic education, English and computer courses in Rohini, Delhi.',
+
     siteName: 'Starlight Academy',
+
     type: 'website',
+
     images: [
       {
         url: '/admission-og.jpg',
         width: 1200,
         height: 630,
-        alt: 'Admission Open 2026 - Starlight Academy',
+        alt:
+          'Admissions Open 2026 - Starlight Academy Rohini Delhi',
       },
     ],
   },
 
   twitter: {
     card: 'summary_large_image',
+
     title:
-      'Admission Open 2026 | Starlight Academy',
+      'Admissions Open 2026 | Starlight Academy',
+
     description:
-      'Apply for NIOS, UG, PG, Teacher Training and Healthcare Courses with expert admission guidance.',
+      'Apply for competitive exam preparation, NIOS, open schooling, academic, English and computer courses at Starlight Academy, Rohini Delhi.',
+
     images: ['/admission-og.jpg'],
   },
 
   alternates: {
-    canonical: 'https://www.vihaanacademy.com/admission',
+    canonical: '/admission',
   },
 };
 

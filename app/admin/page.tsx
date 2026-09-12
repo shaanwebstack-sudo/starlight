@@ -16,7 +16,15 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { createClient } from '@/lib/supabase/client';
-import { Course, Lead, Notice, Admission, StudentProfile } from '@/lib/types';
+import {
+  Course,
+  Lead,
+  Notice,
+  Admission,
+  StudentProfile,
+  CATEGORY_LABELS,
+  StudentCategory,
+} from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth-context';
 import { ImageUpload } from '@/components/image-upload';
@@ -37,6 +45,8 @@ import {
   Mail,
   ImageIcon,
   HelpCircle,
+  Building2,
+  Monitor,
 } from 'lucide-react';
 import {
   Dialog,
@@ -46,10 +56,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import DynamicCategoryForm, {
+  CompleteFormValue,
+} from '@/components/ui/dynamic-category-form';
 import { GalleryUpload } from '@/components/admin/gallery/gallery-upload';
 import { GallerySection } from '@/components/admin/gallery/gallery-section';
 import QuizSection from '@/components/admin/quiz/quiz-section';
 import UsersSection from '@/components/admin/users/users-section';
+
 export default function AdminPage() {
   const router = useRouter();
   const { user, role, isLoading: authLoading, signOut } = useAuth();
@@ -73,15 +88,30 @@ export default function AdminPage() {
   const [studentFilterCourse, setStudentFilterCourse] = useState('all');
   const [studentFilterClass, setStudentFilterClass] = useState('all');
   const { toast } = useToast();
+const [showStudentDeleteDialog, setShowStudentDeleteDialog] =
+  useState(false);
 
+const [studentToDelete, setStudentToDelete] =
+  useState<StudentProfile | null>(null);
+  const confirmStudentDelete = (student: StudentProfile) => {
+  setStudentToDelete(student);
+  setShowStudentDeleteDialog(true);
+};
   function generateSlug(title: string): string {
     return title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
   }
-
-  const [courseForm, setCourseForm] = useState({ title: '', description: '', image_url: '', duration: 'Flexible', fee: '', featured: false });
+const [courseForm, setCourseForm] = useState({
+  title: '',
+  description: '',
+  image_url: '',
+  duration: 'Flexible',
+  fee: '',
+  featured: false,
+  category: '' as StudentCategory | '',
+});
   const [noticeForm, setNoticeForm] = useState({ title: '', content: '', priority: 'medium', is_active: true });
  const [studentForm, setStudentForm] = useState({
   full_name: '',
@@ -278,47 +308,122 @@ const loadData = useCallback(async () => {
       loadData();
     }
   }, [authLoading, user, role, router, loadData]);
+const handleSubmitCourse = async (
+  e: React.FormEvent
+) => {
+  e.preventDefault();
 
-  const handleSubmitCourse = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    const slug = generateSlug(courseForm.title);
-    try {
-      if (editingId) {
-        const { error } = await (supabase.from('courses') as any).update({ 
-          title: courseForm.title, 
-          description: courseForm.description, 
-          image_url: courseForm.image_url,
-          slug,
-          duration: courseForm.duration,
-          fee: courseForm.fee,
-          featured: courseForm.featured
-        }).eq('id', editingId);
-        if (error) throw error;
-        toast({ title: 'Success', description: 'Course updated' });
-      } else {
-        const { error } = await (supabase.from('courses') as any).insert([{ 
-          title: courseForm.title, 
-          description: courseForm.description, 
-          image_url: courseForm.image_url,
-          slug,
-          duration: courseForm.duration,
-          fee: courseForm.fee,
-          featured: courseForm.featured
-        }]);
-        if (error) throw error;
-        toast({ title: 'Success', description: 'Course added' });
+  if (!courseForm.title.trim()) {
+    toast({
+      title: 'Course Title Required',
+      description: 'Please enter the course title.',
+      variant: 'destructive',
+    });
+    return;
+  }
+
+  if (!courseForm.category) {
+    toast({
+      title: 'Category Required',
+      description: 'Please select a course category.',
+      variant: 'destructive',
+    });
+    return;
+  }
+
+  setIsSubmitting(true);
+
+  const slug = generateSlug(
+    courseForm.title
+  );
+
+  try {
+    const payload = {
+      title: courseForm.title.trim(),
+
+      description:
+        courseForm.description.trim(),
+
+      image_url:
+        courseForm.image_url || '',
+
+      slug,
+
+      duration:
+        courseForm.duration || 'Flexible',
+
+      fee:
+        courseForm.fee || '',
+
+      featured:
+        courseForm.featured,
+
+      category:
+        courseForm.category,
+    };
+
+    if (editingId) {
+      const { error } = await (
+        supabase.from('courses') as any
+      )
+        .update(payload)
+        .eq('id', editingId);
+
+      if (error) {
+        throw error;
       }
-      setCourseForm({ title: '', description: '', image_url: '', duration: 'Flexible', fee: '', featured: false });
-      setEditingId(null);
-      setEditingType(null);
-      loadData();
-    } catch (error) {
-      toast({ title: 'Error', description: 'Failed to save course', variant: 'destructive' });
-    } finally {
-      setIsSubmitting(false);
+
+      toast({
+        title: 'Success',
+        description: 'Course updated successfully.',
+      });
+    } else {
+      const { error } = await (
+        supabase.from('courses') as any
+      ).insert([payload]);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Course added successfully.',
+      });
     }
-  };
+
+    setCourseForm({
+      title: '',
+      description: '',
+      image_url: '',
+      duration: 'Flexible',
+      fee: '',
+      featured: false,
+      category: '',
+    });
+
+    setEditingId(null);
+    setEditingType(null);
+
+    await loadData();
+  } catch (error) {
+    console.error(
+      'Course save error:',
+      error
+    );
+
+    toast({
+      title: 'Error',
+      description:
+        error instanceof Error
+          ? error.message
+          : 'Failed to save course.',
+      variant: 'destructive',
+    });
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const handleSubmitNotice = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -374,71 +479,218 @@ const { error } = await (supabase.from('student_profiles') as any)
     setIsSubmitting(false);
   }
 };
-const handleSubmitStudent = async (e: React.FormEvent) => {
-  e.preventDefault();
+const handleDeleteStudent = async (
+  studentId: string
+) => {
+  setIsSubmitting(true);
 
+  try {
+    /*
+     * ---------------------------------------------------------
+     * 1. Get current Supabase session
+     * ---------------------------------------------------------
+     */
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (sessionError) {
+      console.error(
+        'Session error:',
+        sessionError
+      );
+
+      throw new Error(
+        'Unable to get your login session. Please login again.'
+      );
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * 2. Make sure admin is logged in
+     * ---------------------------------------------------------
+     */
+    if (!session?.access_token) {
+      throw new Error(
+        'Your session has expired. Please login again.'
+      );
+    }
+
+    console.log(
+      '[DELETE STUDENT] Sending authenticated request'
+    );
+
+    /*
+     * ---------------------------------------------------------
+     * 3. Send access token to API
+     *
+     * THIS WAS MISSING IN YOUR CURRENT CODE.
+     * ---------------------------------------------------------
+     */
+    const response = await fetch(
+      `/api/admin/students/${studentId}`,
+      {
+        method: 'DELETE',
+
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    /*
+     * ---------------------------------------------------------
+     * 4. Read API response safely
+     * ---------------------------------------------------------
+     */
+    const result = await response.json();
+
+    console.log(
+      '[DELETE STUDENT] API response:',
+      result
+    );
+
+    /*
+     * ---------------------------------------------------------
+     * 5. Handle API errors
+     * ---------------------------------------------------------
+     */
+    if (!response.ok) {
+      throw new Error(
+        result?.error ||
+          'Failed to delete student.'
+      );
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * 6. Success
+     * ---------------------------------------------------------
+     */
+    toast({
+      title: 'Student Deleted',
+      description:
+        'Student profile and login account have been deleted successfully.',
+    });
+
+    /*
+     * ---------------------------------------------------------
+     * 7. Refresh student list
+     * ---------------------------------------------------------
+     */
+    await loadData();
+
+  } catch (error) {
+    console.error(
+      'Student delete error:',
+      error
+    );
+
+    toast({
+      title: 'Error',
+      description:
+        error instanceof Error
+          ? error.message
+          : 'Failed to delete student.',
+      variant: 'destructive',
+    });
+
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+const handleDynamicStudentSubmit = async (
+  data: CompleteFormValue
+) => {
   if (!editingId) {
     toast({
       title: 'Student Registration',
       description:
-        'Students should register from the student signup page. The Admin panel is used to manage and approve registered students.',
+        'Students should register from the student signup page.',
       variant: 'destructive',
     });
-    return;
-  }
 
-  if (!studentForm.full_name.trim()) {
-    toast({
-      title: 'Full Name Required',
-      description: 'Please enter the student name.',
-      variant: 'destructive',
-    });
-    return;
-  }
-
-  if (!studentForm.email.trim()) {
-    toast({
-      title: 'Email Required',
-      description: 'Please enter the student email.',
-      variant: 'destructive',
-    });
-    return;
-  }
-
-  if (!studentForm.enrollment_number.trim()) {
-    toast({
-      title: 'Enrollment Number Required',
-      description: 'Please enter the enrollment number.',
-      variant: 'destructive',
-    });
     return;
   }
 
   setIsSubmitting(true);
 
   try {
-    const subjectsArray = studentForm.subjects
-      ? studentForm.subjects
-          .split(',')
-          .map((subject) => subject.trim())
-          .filter(Boolean)
-      : [];
-
     const payload = {
-      full_name: studentForm.full_name.trim(),
-      email: studentForm.email.trim().toLowerCase(),
+      full_name:
+        data.full_name.trim(),
+
+      email:
+        data.email.trim().toLowerCase(),
+
+      phone:
+        data.phone.trim(),
+
       enrollment_number:
-        studentForm.enrollment_number.trim(),
-      course: studentForm.course.trim(),
-      phone: studentForm.phone.trim(),
-      class_grade: studentForm.class_grade.trim(),
-      address: studentForm.address.trim(),
-      subjects: subjectsArray,
-      updated_at: new Date().toISOString(),
+        data.enrollment_number.trim(),
+
+      address:
+        data.address.trim(),
+
+      course:
+        data.course.trim(),
+
+      /*
+       * Keep your existing class_grade
+       * column for compatibility.
+       *
+       * For NIOS/Open Schooling, level
+       * is stored here.
+       */
+      class_grade:
+        data.level?.trim() || '',
+
+      subjects:
+        data.subjects || [],
+
+      /*
+       * Dynamic category
+       */
+      category:
+        data.category,
+
+      /*
+       * Dynamic fields
+       */
+      exam:
+        data.exam || null,
+
+      level:
+        data.level || null,
+
+      stream:
+        data.stream || null,
+
+      session:
+        data.session || null,
+
+      batch:
+        data.batch || null,
+
+      batch_timing:
+        data.batch_timing || null,
+
+      duration:
+        data.duration || null,
+
+      computer_course:
+        data.computer_course || null,
+
+      updated_at:
+        new Date().toISOString(),
     };
 
     const { error } = await (
-      supabase.from('student_profiles') as any
+      supabase.from(
+        'student_profiles'
+      ) as any
     )
       .update(payload)
       .eq('id', editingId);
@@ -469,7 +721,10 @@ const handleSubmitStudent = async (e: React.FormEvent) => {
 
     await loadData();
   } catch (error) {
-    console.error('Student update error:', error);
+    console.error(
+      'Student update error:',
+      error
+    );
 
     toast({
       title: 'Error',
@@ -663,16 +918,18 @@ const handleSubmitAdmission = async (
   const handleEdit = (item: any, type: string) => {
     setEditingId(item.id);
     setEditingType(type);
-    if (type === 'course') {
-      setCourseForm({ 
-        title: item.title, 
-        description: item.description || '', 
-        image_url: item.image_url || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&auto=format&fit=crop',
-        duration: item.duration || 'Flexible',
-        fee: item.fee || '',
-        featured: item.featured || false
-      });
-    } else if (type === 'notice') {
+  if (type === 'course') {
+  setCourseForm({
+    title: item.title || '',
+    description: item.description || '',
+    image_url: item.image_url || '',
+    duration: item.duration || 'Flexible',
+    fee: item.fee || '',
+    featured: item.featured || false,
+    category:
+      item.category || '',
+  });
+}else if (type === 'notice') {
       setNoticeForm({ title: item.title, content: item.content || '', priority: item.priority || 'medium', is_active: item.is_active !== false });
     } else if (type === 'student') {
   const subjectsString = Array.isArray(item.subjects)
@@ -794,7 +1051,15 @@ const handleViewAdmission = (admission: any) => {
   const cancelEdit = () => {
     setEditingId(null);
     setEditingType(null);
-    setCourseForm({ title: '', description: '', image_url: '', duration: 'Flexible', fee: '', featured: false });
+  setCourseForm({
+  title: '',
+  description: '',
+  image_url: '',
+  duration: 'Flexible',
+  fee: '',
+  featured: false,
+  category: '',
+});
     setNoticeForm({ title: '', content: '', priority: 'medium', is_active: true });
     setStudentForm({ full_name: '', email: '', enrollment_number: '', course: '', phone: '', class_grade: '', address: '', subjects: '' });
     setAdmissionForm(emptyAdmissionForm);
@@ -973,6 +1238,46 @@ if (authLoading || isLoading) {
                     <Input id="course-title" value={courseForm.title} onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })} required placeholder="e.g., Web Development" className={inputClass} />
                   </div>
                   <div className="space-y-2">
+  <Label htmlFor="course-category">
+    Course Category *
+  </Label>
+
+  <Select
+    value={courseForm.category}
+    onValueChange={(value) =>
+      setCourseForm({
+        ...courseForm,
+        category: value as StudentCategory,
+      })
+    }
+  >
+    <SelectTrigger
+      id="course-category"
+      className={inputClass}
+    >
+      <SelectValue placeholder="Select course category" />
+    </SelectTrigger>
+
+    <SelectContent>
+      <SelectItem value="government_exams">
+        Government Exams
+      </SelectItem>
+
+      <SelectItem value="nios">
+        NIOS
+      </SelectItem>
+
+      <SelectItem value="open_schooling">
+        Open Schooling
+      </SelectItem>
+
+      <SelectItem value="computer_courses">
+        Computer Courses
+      </SelectItem>
+    </SelectContent>
+  </Select>
+</div>
+                  <div className="space-y-2">
                     <Label htmlFor="course-desc">Description *</Label>
                     <Textarea id="course-desc" value={courseForm.description} onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })} required placeholder="Course description" rows={3} className={inputClass} />
                   </div>
@@ -1129,96 +1434,63 @@ if (authLoading || isLoading) {
   </CardDescription>
 </CardHeader>
               <CardContent className="px-4 sm:px-6">
-                <form onSubmit={handleSubmitStudent} className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="student-name">Full Name *</Label>
-                      <Input id="student-name" value={studentForm.full_name} onChange={(e) => setStudentForm({ ...studentForm, full_name: e.target.value })} required placeholder="Student name" className={inputClass} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="student-email">Email *</Label>
-                      <Input id="student-email" type="email" value={studentForm.email} onChange={(e) => setStudentForm({ ...studentForm, email: e.target.value })} required placeholder="student@email.com" className={inputClass} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="student-enrollment">Enrollment Number *</Label>
-                      <Input id="student-enrollment" value={studentForm.enrollment_number} onChange={(e) => setStudentForm({ ...studentForm, enrollment_number: e.target.value })} required placeholder="e.g., VEA-2024-001" className={inputClass} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="student-phone">Phone</Label>
-                      <Input id="student-phone" type="tel" value={studentForm.phone} onChange={(e) => setStudentForm({ ...studentForm, phone: e.target.value })} placeholder="Contact number" className={inputClass} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="student-course">Course</Label>
-                      <Input id="student-course" value={studentForm.course} onChange={(e) => setStudentForm({ ...studentForm, course: e.target.value })} placeholder="Enrolled course" className={inputClass} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="student-class">Class Grade</Label>
-                      <Input id="student-class" value={studentForm.class_grade} onChange={(e) => setStudentForm({ ...studentForm, class_grade: e.target.value })} placeholder="e.g., 10th, 12th" className={inputClass} />
-                    </div>
-                    <div className="space-y-2 sm:col-span-2">
-  <Label htmlFor="student-address">
-    Address
-  </Label>
+              <DynamicCategoryForm
+  mode={
+    editingType === 'student'
+      ? 'admin-edit'
+      : 'admin-create'
+  }
 
-  <Textarea
-    id="student-address"
-    value={studentForm.address}
-    onChange={(e) =>
-      setStudentForm({
-        ...studentForm,
-        address: e.target.value,
-      })
-    }
-    placeholder="Student's full address"
-    rows={3}
-    className={inputClass}
-  />
-</div>
-                    <div className="space-y-2">
-                      <Label htmlFor="student-subjects">Subjects</Label>
-                      <Input id="student-subjects" value={studentForm.subjects} onChange={(e) => setStudentForm({ ...studentForm, subjects: e.target.value })} placeholder="e.g., Math, Science, English" className={inputClass} />
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <Button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 text-white hover:bg-blue-700 sm:w-auto">
-                      {isSubmitting ? (
-  <>
-    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-    Updating...
-  </>
-) : (
-  'Update Student'
-)}
-                    </Button>
-                  {editingType === 'student' && (
-  <>
-    <Button
-      type="submit"
-      disabled={isSubmitting}
-      className="w-full bg-blue-600 text-white hover:bg-blue-700 sm:w-auto"
-    >
-      {isSubmitting ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Updating...
-        </>
-      ) : (
-        'Update Student'
-      )}
-    </Button>
+  courses={courses}
 
-    <Button
-      type="button"
-      variant="outline"
-      onClick={cancelEdit}
-      className="w-full border-blue-200 text-blue-700 hover:bg-blue-50 sm:w-auto"
-    >
-      Cancel
-    </Button>
-  </>
-)}
-                  </div>
-                </form>
+  initialData={
+    editingType === 'student'
+      ? {
+          full_name:
+            studentForm.full_name,
+
+          email:
+            studentForm.email,
+
+          phone:
+            studentForm.phone,
+
+          enrollment_number:
+            studentForm.enrollment_number,
+
+          address:
+            studentForm.address,
+
+          course:
+            studentForm.course,
+
+          subjects:
+            studentForm.subjects
+              ? studentForm.subjects
+                  .split(',')
+                  .map((s) => s.trim())
+                  .filter(Boolean)
+              : [],
+        }
+      : undefined
+  }
+
+  onSubmit={async (
+    data: CompleteFormValue
+  ) => {
+    await handleDynamicStudentSubmit(
+      data
+    );
+  }}
+
+  isLoading={isSubmitting}
+
+  submitLabel={
+    editingType === 'student'
+      ? 'Update Student'
+      : 'Save Student'
+  }
+/>
               </CardContent>
             </Card>
 
@@ -1366,29 +1638,48 @@ if (authLoading || isLoading) {
         )}
       </td>
 
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-2">
-          {!student.is_approved && (
-            <Button
-              size="sm"
-              onClick={() => handleApproveStudent(student.id)}
-              disabled={isSubmitting}
-              className="bg-green-600 text-white hover:bg-green-700"
-            >
-              Approve
-            </Button>
-          )}
+<td className="px-4 py-3">
+  <div className="flex items-center gap-2">
+    {!student.is_approved && (
+      <Button
+        size="sm"
+        onClick={() =>
+          handleApproveStudent(student.id)
+        }
+        disabled={isSubmitting}
+        className="bg-green-600 text-white hover:bg-green-700"
+      >
+        Approve
+      </Button>
+    )}
 
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleEdit(student, 'student')}
-            className="h-8 w-8 border-yellow-200 p-0 text-yellow-700 hover:bg-yellow-50"
-          >
-            <Edit2 className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      </td>
+    {/* EDIT */}
+    <Button
+      size="sm"
+      variant="outline"
+      onClick={() =>
+        handleEdit(student, 'student')
+      }
+      disabled={isSubmitting}
+      className="h-8 w-8 border-yellow-200 p-0 text-yellow-700 hover:bg-yellow-50"
+    >
+      <Edit2 className="h-3.5 w-3.5" />
+    </Button>
+
+    {/* DELETE */}
+    <Button
+      size="sm"
+      variant="destructive"
+      onClick={() =>
+        confirmStudentDelete(student)
+      }
+      disabled={isSubmitting}
+      className="h-8 w-8 p-0"
+    >
+      <Trash2 className="h-3.5 w-3.5" />
+    </Button>
+  </div>
+</td>
     </tr>
   ))}
 </tbody>
@@ -2527,31 +2818,60 @@ if (authLoading || isLoading) {
         </div>
 
 
-        {/* Academic */}
+        {/* Course & Category (Dynamic) */}
 
         <div className="rounded-lg border border-blue-100 p-4">
 
           <h3 className="mb-4 font-semibold text-blue-900">
-            Academic Information
+            Course &amp; Category Information
+          </h3>
+
+          {(() => {
+            const admission = viewingAdmission;
+            const initialData: Partial<CompleteFormValue> = {
+              category: (admission.category as StudentCategory) || '',
+              full_name: admission.student_name || '',
+              email: admission.email || '',
+              phone: admission.phone || '',
+              date_of_birth: admission.date_of_birth || '',
+              parent_name: admission.parent_name || '',
+              parent_phone: admission.parent_phone || '',
+              address: admission.address || '',
+              exam: admission.exam || '',
+              level: admission.level || '',
+              stream: admission.stream || '',
+              session: admission.session || '',
+              batch: admission.batch || '',
+              batch_timing: admission.batch_timing || '',
+              duration: admission.duration || '',
+              computer_course: admission.computer_course || '',
+              subjects:
+                Array.isArray(admission.subjects)
+                  ? (admission.subjects.filter(Boolean) as string[])
+                  : [],
+            };
+            return (
+              <DynamicCategoryForm
+                mode="view"
+                initialData={initialData}
+                compact
+                courses={courses}
+              />
+            );
+          })()}
+
+        </div>
+
+
+        {/* Academic Background */}
+
+        <div className="rounded-lg border border-blue-100 p-4">
+
+          <h3 className="mb-4 font-semibold text-blue-900">
+            Academic Background
           </h3>
 
           <div className="grid gap-4 sm:grid-cols-2">
-
-            <p>
-              <span className="text-xs text-gray-500">
-                Course
-              </span>
-              <br />
-              {viewingAdmission.course || '-'}
-            </p>
-
-            <p>
-              <span className="text-xs text-gray-500">
-                Class
-              </span>
-              <br />
-              {viewingAdmission.class || '-'}
-            </p>
 
             <p>
               <span className="text-xs text-gray-500">
@@ -2568,43 +2888,6 @@ if (authLoading || isLoading) {
               <br />
               {viewingAdmission.school_college || '-'}
             </p>
-
-          </div>
-
-        </div>
-
-
-        {/* Subjects */}
-
-        <div className="rounded-lg border border-blue-100 p-4">
-
-          <h3 className="mb-4 font-semibold text-blue-900">
-            Subjects
-          </h3>
-
-          <div className="flex flex-wrap gap-2">
-
-            {Array.isArray(viewingAdmission.subjects) &&
-            viewingAdmission.subjects.length > 0 ? (
-
-              viewingAdmission.subjects.map(
-                (subject: string, index: number) => (
-
-                  <span
-                    key={index}
-                    className="rounded-full bg-blue-100 px-3 py-1 text-sm text-blue-800"
-                  >
-                    {subject}
-                  </span>
-
-                )
-              )
-
-            ) : (
-              <span className="text-gray-500">
-                No subjects specified
-              </span>
-            )}
 
           </div>
 
@@ -2637,6 +2920,23 @@ if (authLoading || isLoading) {
               {viewingAdmission.reference_number || '-'}
             </p>
 
+            <div className="grid gap-4 sm:grid-cols-2 pt-1">
+              <p>
+                <span className="text-xs text-gray-500">
+                  Legacy Course
+                </span>
+                <br />
+                {viewingAdmission.course || '-'}
+              </p>
+              <p>
+                <span className="text-xs text-gray-500">
+                  Legacy Class
+                </span>
+                <br />
+                {viewingAdmission.class || '-'}
+              </p>
+            </div>
+
           </div>
 
         </div>
@@ -2668,6 +2968,89 @@ if (authLoading || isLoading) {
 
     )}
 
+  </DialogContent>
+</Dialog>
+<Dialog
+  open={showStudentDeleteDialog}
+  onOpenChange={(open) => {
+    setShowStudentDeleteDialog(open);
+
+    if (!open) {
+      setStudentToDelete(null);
+    }
+  }}
+>
+  <DialogContent className="w-[calc(100vw-2rem)] max-w-md border-red-100">
+    <DialogHeader>
+      <DialogTitle className="text-red-700">
+        Delete Student
+      </DialogTitle>
+
+      <DialogDescription>
+        This action will permanently delete the student
+        profile and their login account. This cannot be undone.
+      </DialogDescription>
+    </DialogHeader>
+
+    {studentToDelete && (
+      <div className="rounded-lg border border-red-100 bg-red-50 p-4">
+        <p className="font-semibold text-gray-900">
+          {studentToDelete.full_name}
+        </p>
+
+        <p className="mt-1 text-sm text-gray-600">
+          {studentToDelete.email || 'No email'}
+        </p>
+
+        {studentToDelete.enrollment_number && (
+          <p className="mt-1 text-sm text-gray-600">
+            Enrollment: {studentToDelete.enrollment_number}
+          </p>
+        )}
+      </div>
+    )}
+
+    <DialogFooter className="gap-2">
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => {
+          setShowStudentDeleteDialog(false);
+          setStudentToDelete(null);
+        }}
+        disabled={isSubmitting}
+      >
+        Cancel
+      </Button>
+
+      <Button
+        type="button"
+        variant="destructive"
+        disabled={isSubmitting}
+        onClick={async () => {
+          if (!studentToDelete) return;
+
+          await handleDeleteStudent(
+            studentToDelete.id
+          );
+
+          setShowStudentDeleteDialog(false);
+          setStudentToDelete(null);
+        }}
+      >
+        {isSubmitting ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Deleting...
+          </>
+        ) : (
+          <>
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete Student
+          </>
+        )}
+      </Button>
+    </DialogFooter>
   </DialogContent>
 </Dialog>
     </div>

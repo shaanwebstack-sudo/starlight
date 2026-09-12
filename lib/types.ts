@@ -1,3 +1,75 @@
+export type StudentCategory =
+  | 'government_exams'
+  | 'nios'
+  | 'open_schooling'
+  | 'computer_courses';
+
+export const CATEGORY_LABELS: Record<StudentCategory, string> = {
+  government_exams: 'Government Exams',
+  nios: 'NIOS',
+  open_schooling: 'Open Schooling',
+  computer_courses: 'Computer Courses',
+};
+
+export const GOVERNMENT_EXAMS: string[] = [
+  'SSC',
+  'CGL',
+  'CHSL',
+  'Delhi Police',
+  'Constable',
+  'Head Constable',
+  'MTS/GD',
+  'Bank',
+  'CLAT',
+  'NDA',
+  'CUET',
+  'CPO',
+  'CTET',
+  'DSSSB',
+  'PRT',
+  'TGT',
+  'PGT',
+  'KVS',
+  'NVS',
+  'D.El.Ed',
+  'B.Ed.',
+];
+
+export const NIOS_LEVELS: string[] = ['10th', '12th'];
+export const OPEN_SCHOOLING_LEVELS: string[] = ['10th', '11th', '12th'];
+export const STREAMS: string[] = ['Science', 'Commerce', 'Arts', 'Humanities'];
+export const SESSIONS: string[] = [
+  'January - April 2026',
+  'May - August 2026',
+  'September - December 2026',
+  '2025-2026',
+  '2026-2027',
+];
+export const BATCHES: string[] = [
+  'Morning',
+  'Evening',
+  'Weekend',
+  'Weekday',
+  'Regular',
+  'Crash Course',
+];
+export const BATCH_TIMINGS: string[] = [
+  '7:00 AM - 9:00 AM',
+  '9:00 AM - 11:00 AM',
+  '4:00 PM - 6:00 PM',
+  '6:00 PM - 8:00 PM',
+  'Sat-Sun 10:00 AM - 1:00 PM',
+  'Custom',
+];
+export const COMPUTER_DURATIONS: string[] = [
+  '3 Months',
+  '6 Months',
+  '12 Months',
+  '18 Months',
+  '24 Months',
+  'Flexible',
+];
+
 export interface Course {
   id: string;
   title: string;
@@ -120,6 +192,7 @@ export interface StudentFormData {
   address: string;
   subjects: string;
 }
+
 export type StudentProfile = {
   id: string;
   user_id: string;
@@ -132,6 +205,20 @@ export type StudentProfile = {
   subjects: string[];
   address: string | null;
   is_approved: boolean;
+  is_active: boolean;
+  category: StudentCategory | null;
+  exam: string | null;
+  level: string | null;
+  stream: string | null;
+  session: string | null;
+  batch: string | null;
+  batch_timing: string | null;
+  duration: string | null;
+  computer_course: string | null;
+  parent_name: string | null;
+  parent_phone: string | null;
+  date_of_birth: string | null;
+  application_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -143,13 +230,24 @@ export interface Admission {
   phone: string;
   course: string;
   class: string | null;
-  subjects: string | null;
+  subjects: string[] | null;
   reference_number: string | null;
   parent_name: string | null;
   parent_phone: string | null;
   address: string | null;
   status: 'pending' | 'approved' | 'rejected';
   message: string | null;
+  category: StudentCategory | null;
+  exam: string | null;
+  level: string | null;
+  stream: string | null;
+  session: string | null;
+  batch: string | null;
+  batch_timing: string | null;
+  duration: string | null;
+  computer_course: string | null;
+  date_of_birth: string | null;
+  student_profile_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -166,6 +264,28 @@ export interface AdmissionFormData {
   parent_phone: string;
   address: string;
   message: string;
+  category: StudentCategory | '';
+  exam: string;
+  level: string;
+  stream: string;
+  session: string;
+  batch: string;
+  batch_timing: string;
+  duration: string;
+  computer_course: string;
+  date_of_birth: string;
+}
+
+export interface DynamicStudentFormData {
+  category: StudentCategory | '';
+  exam?: string;
+  level?: string;
+  stream?: string;
+  session?: string;
+  batch?: string;
+  batch_timing?: string;
+  duration?: string;
+  computer_course?: string;
 }
 
 

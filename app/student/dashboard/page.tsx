@@ -50,7 +50,14 @@ import {
   AlertCircle,
 } from 'lucide-react';
 
-import { Notice, Course, Quiz, QuizSubject } from '@/lib/types';
+import {
+  Notice,
+  Course,
+  Quiz,
+  QuizSubject,
+  CATEGORY_LABELS,
+  StudentCategory,
+} from '@/lib/types';
 
 interface QuizAttempt {
   id: string;
@@ -647,183 +654,396 @@ export default function StudentDashboard() {
             PROFILE
         ====================================================== */}
 
-        <Card className="border-blue-100">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-blue-900">
-              <User className="h-5 w-5" />
-              My Profile
-            </CardTitle>
-
-            <CardDescription>
-              Your account and enrollment details
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-
-              {/* Full Name */}
-              <div className="flex items-center gap-3 rounded-lg border border-blue-50 bg-blue-50/40 p-3">
-                <User className="h-5 w-5 shrink-0 text-blue-600" />
-
-                <div className="min-w-0">
-                  <p className="text-xs text-gray-500">
-                    Full Name
-                  </p>
-
-                  <p className="truncate font-semibold text-gray-900">
-                    {profile.full_name || '—'}
-                  </p>
+        <div className="space-y-5">
+          {/* === PERSONAL INFORMATION === */}
+          <Card className="border-blue-100">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-blue-900">
+                <User className="h-5 w-5" />
+                Personal Information
+              </CardTitle>
+              <CardDescription>Your personal details</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {/* Full Name */}
+                <div className="flex items-center gap-3 rounded-lg border border-blue-50 bg-blue-50/40 p-3">
+                  <User className="h-5 w-5 shrink-0 text-blue-600" />
+                  <div className="min-w-0">
+                    <p className="text-xs text-gray-500">Full Name</p>
+                    <p className="truncate font-semibold text-gray-900">
+                      {profile.full_name || '—'}
+                    </p>
+                  </div>
                 </div>
-              </div>
-
-              {/* Email */}
-              <div className="flex items-center gap-3 rounded-lg border border-blue-50 bg-blue-50/40 p-3">
-                <Mail className="h-5 w-5 shrink-0 text-blue-600" />
-
-                <div className="min-w-0">
-                  <p className="text-xs text-gray-500">
-                    Email
-                  </p>
-
-                  <p className="truncate font-semibold text-gray-900">
-                    {user.email || '—'}
-                  </p>
+                {/* Email */}
+                <div className="flex items-center gap-3 rounded-lg border border-blue-50 bg-blue-50/40 p-3">
+                  <Mail className="h-5 w-5 shrink-0 text-blue-600" />
+                  <div className="min-w-0">
+                    <p className="text-xs text-gray-500">Email</p>
+                    <p className="truncate font-semibold text-gray-900">
+                      {user.email || profile.email || '—'}
+                    </p>
+                  </div>
                 </div>
-              </div>
-
-              {/* Phone */}
-              <div className="flex items-center gap-3 rounded-lg border border-blue-50 bg-blue-50/40 p-3">
-                <Phone className="h-5 w-5 shrink-0 text-blue-600" />
-
-                <div className="min-w-0">
-                  <p className="text-xs text-gray-500">
-                    Phone
-                  </p>
-
-                  <p className="truncate font-semibold text-gray-900">
-                    {profile.phone || '—'}
-                  </p>
+                {/* Phone */}
+                <div className="flex items-center gap-3 rounded-lg border border-blue-50 bg-blue-50/40 p-3">
+                  <Phone className="h-5 w-5 shrink-0 text-blue-600" />
+                  <div className="min-w-0">
+                    <p className="text-xs text-gray-500">Phone</p>
+                    <p className="truncate font-semibold text-gray-900">
+                      {profile.phone || '—'}
+                    </p>
+                  </div>
                 </div>
-              </div>
-
-              {/* Course */}
-              <div className="flex items-center gap-3 rounded-lg border border-blue-50 bg-blue-50/40 p-3">
-                <BookMarked className="h-5 w-5 shrink-0 text-blue-600" />
-
-                <div className="min-w-0">
-                  <p className="text-xs text-gray-500">
-                    Course
-                  </p>
-
-                  <p className="truncate font-semibold text-gray-900">
-                    {profile.course || '—'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Class */}
-              <div className="flex items-center gap-3 rounded-lg border border-blue-50 bg-blue-50/40 p-3">
-                <GraduationCap className="h-5 w-5 shrink-0 text-blue-600" />
-
-                <div className="min-w-0">
-                  <p className="text-xs text-gray-500">
-                    Class / Grade
-                  </p>
-
-                  <p className="truncate font-semibold text-gray-900">
-                    {profile.class_grade || '—'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Enrollment */}
-              <div className="flex items-center gap-3 rounded-lg border border-blue-50 bg-blue-50/40 p-3">
-                <Hash className="h-5 w-5 shrink-0 text-blue-600" />
-
-                <div className="min-w-0">
-                  <p className="text-xs text-gray-500">
-                    Enrollment No.
-                  </p>
-
-                  <p className="truncate font-semibold text-gray-900">
-                    {profile.enrollment_number || '—'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Subjects */}
-              {profile.subjects &&
-                profile.subjects.length > 0 && (
-                  <div className="flex items-start gap-3 rounded-lg border border-blue-50 bg-blue-50/40 p-3 sm:col-span-2 lg:col-span-2">
-                    <BookOpen className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
-
+                {/* DOB */}
+                {profile.date_of_birth && (
+                  <div className="flex items-center gap-3 rounded-lg border border-blue-50 bg-blue-50/40 p-3">
+                    <Calendar className="h-5 w-5 shrink-0 text-blue-600" />
                     <div className="min-w-0">
-                      <p className="text-xs text-gray-500">
-                        Subjects
-                      </p>
-
-                      <p className="font-semibold text-gray-900">
-                        {Array.isArray(profile.subjects)
-                          ? profile.subjects.join(', ')
-                          : profile.subjects}
+                      <p className="text-xs text-gray-500">Date of Birth</p>
+                      <p className="truncate font-semibold text-gray-900">
+                        {formatDate(profile.date_of_birth)}
                       </p>
                     </div>
                   </div>
                 )}
+                {/* Parent Name */}
+                {profile.parent_name && (
+                  <div className="flex items-center gap-3 rounded-lg border border-blue-50 bg-blue-50/40 p-3">
+                    <ShieldCheck className="h-5 w-5 shrink-0 text-blue-600" />
+                    <div className="min-w-0">
+                      <p className="text-xs text-gray-500">
+                        Father's / Guardian's Name
+                      </p>
+                      <p className="truncate font-semibold text-gray-900">
+                        {profile.parent_name}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {/* Parent Phone */}
+                {profile.parent_phone && (
+                  <div className="flex items-center gap-3 rounded-lg border border-blue-50 bg-blue-50/40 p-3">
+                    <Phone className="h-5 w-5 shrink-0 text-blue-600" />
+                    <div className="min-w-0">
+                      <p className="text-xs text-gray-500">Parent Phone</p>
+                      <p className="truncate font-semibold text-gray-900">
+                        {profile.parent_phone}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {/* Address */}
+                {profile.address && (
+                  <div className="flex items-start gap-3 rounded-lg border border-blue-50 bg-blue-50/40 p-3 sm:col-span-2 lg:col-span-2">
+                    <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+                    <div className="min-w-0">
+                      <p className="text-xs text-gray-500">Address</p>
+                      <p className="font-semibold text-gray-900">
+                        {profile.address}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-              {/* Address */}
-              {profile.address && (
-                <div className="flex items-start gap-3 rounded-lg border border-blue-50 bg-blue-50/40 p-3 sm:col-span-2 lg:col-span-1">
-                  <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
-
+          {/* === ENROLLMENT INFORMATION === */}
+          <Card className="border-green-100 bg-gradient-to-br from-white to-green-50/30">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-green-900">
+                <GraduationCap className="h-5 w-5" />
+                Enrollment Information
+              </CardTitle>
+              <CardDescription>
+                Your official academy enrollment details
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {/* Enrollment No */}
+                <div className="flex items-center gap-3 rounded-lg border border-green-100 bg-white p-3">
+                  <Hash className="h-5 w-5 shrink-0 text-green-600" />
                   <div className="min-w-0">
-                    <p className="text-xs text-gray-500">
-                      Address
-                    </p>
-
-                    <p className="font-semibold text-gray-900">
-                      {profile.address}
+                    <p className="text-xs text-gray-500">Enrollment No.</p>
+                    <p className="truncate font-mono font-bold text-green-800 text-lg">
+                      {profile.enrollment_number || '—'}
                     </p>
                   </div>
                 </div>
-              )}
+                {/* Category */}
+                {profile.category && (
+                  <div className="flex items-center gap-3 rounded-lg border border-green-100 bg-white p-3">
+                    <BookMarked className="h-5 w-5 shrink-0 text-green-600" />
+                    <div className="min-w-0">
+                      <p className="text-xs text-gray-500">Category</p>
+                      <p className="truncate font-semibold text-gray-900">
+                        {CATEGORY_LABELS[profile.category as StudentCategory] ||
+                          profile.category}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {/* Approval Status */}
+                <div
+                  className={`flex items-center gap-3 rounded-lg border p-3 bg-white ${
+                    isApproved
+                      ? 'border-green-200'
+                      : 'border-yellow-200'
+                  }`}
+                >
+                  {isApproved ? (
+                    <ShieldCheck className="h-5 w-5 shrink-0 text-green-600" />
+                  ) : (
+                    <Clock className="h-5 w-5 shrink-0 text-yellow-600" />
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-xs text-gray-500">Account Status</p>
+                    <p
+                      className={`font-semibold ${
+                        isApproved ? 'text-green-700' : 'text-yellow-700'
+                      }`}
+                    >
+                      {isApproved
+                        ? profile.is_active === false
+                          ? 'Approved (Inactive)'
+                          : 'Active'
+                        : 'Pending Approval'}
+                    </p>
+                  </div>
+                </div>
+                {/* Enrolled Date */}
+                {profile.created_at && (
+                  <div className="flex items-center gap-3 rounded-lg border border-green-100 bg-white p-3">
+                    <Calendar className="h-5 w-5 shrink-0 text-green-600" />
+                    <div className="min-w-0">
+                      <p className="text-xs text-gray-500">Enrolled On</p>
+                      <p className="truncate font-semibold text-gray-900">
+                        {formatDate(profile.created_at)}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-              {/* Approval Status */}
-              <div
-                className={`flex items-center gap-3 rounded-lg border p-3 ${
-                  isApproved
-                    ? 'border-green-100 bg-green-50/50'
-                    : 'border-yellow-100 bg-yellow-50/50'
-                }`}
-              >
-                {isApproved ? (
-                  <ShieldCheck className="h-5 w-5 shrink-0 text-green-600" />
-                ) : (
-                  <Clock className="h-5 w-5 shrink-0 text-yellow-600" />
+          {/* === CATEGORY-SPECIFIC INFORMATION === */}
+          {profile.category && (
+            <Card className="border-purple-100 bg-gradient-to-br from-white to-purple-50/20">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-purple-900">
+                  <BookOpen className="h-5 w-5" />
+                  {CATEGORY_LABELS[profile.category as StudentCategory]} -
+                  Course Details
+                </CardTitle>
+                <CardDescription>
+                  Information specific to your chosen program
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Government Exams */}
+                {profile.category === 'government_exams' && (
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {profile.exam && (
+                      <div className="flex items-center gap-3 rounded-lg border border-purple-100 bg-white p-3">
+                        <Target className="h-5 w-5 shrink-0 text-purple-600" />
+                        <div className="min-w-0">
+                          <p className="text-xs text-gray-500">Exam</p>
+                          <p className="truncate font-semibold text-gray-900">
+                            {profile.exam}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {profile.batch && (
+                      <div className="flex items-center gap-3 rounded-lg border border-purple-100 bg-white p-3">
+                        <Clock className="h-5 w-5 shrink-0 text-purple-600" />
+                        <div className="min-w-0">
+                          <p className="text-xs text-gray-500">Batch</p>
+                          <p className="truncate font-semibold text-gray-900">
+                            {profile.batch}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {profile.batch_timing && (
+                      <div className="flex items-center gap-3 rounded-lg border border-purple-100 bg-white p-3">
+                        <Clock className="h-5 w-5 shrink-0 text-purple-600" />
+                        <div className="min-w-0">
+                          <p className="text-xs text-gray-500">Batch Timing</p>
+                          <p className="truncate font-semibold text-gray-900">
+                            {profile.batch_timing}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
 
-                <div className="min-w-0">
-                  <p className="text-xs text-gray-500">
-                    Account Status
-                  </p>
+                {/* NIOS */}
+                {profile.category === 'nios' && (
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {profile.level && (
+                      <div className="flex items-center gap-3 rounded-lg border border-purple-100 bg-white p-3">
+                        <GraduationCap className="h-5 w-5 shrink-0 text-purple-600" />
+                        <div className="min-w-0">
+                          <p className="text-xs text-gray-500">Level</p>
+                          <p className="truncate font-semibold text-gray-900">
+                            {profile.level === '10th'
+                              ? 'Secondary (10th)'
+                              : profile.level === '12th'
+                              ? 'Senior Secondary (12th)'
+                              : profile.level}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {profile.stream && (
+                      <div className="flex items-center gap-3 rounded-lg border border-purple-100 bg-white p-3">
+                        <BookMarked className="h-5 w-5 shrink-0 text-purple-600" />
+                        <div className="min-w-0">
+                          <p className="text-xs text-gray-500">Stream</p>
+                          <p className="truncate font-semibold text-gray-900">
+                            {profile.stream}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {profile.subjects && profile.subjects.length > 0 && (
+                      <div className="flex items-start gap-3 rounded-lg border border-purple-100 bg-white p-3 sm:col-span-1 lg:col-span-1">
+                        <BookOpen className="mt-0.5 h-5 w-5 shrink-0 text-purple-600" />
+                        <div className="min-w-0">
+                          <p className="text-xs text-gray-500">Subjects</p>
+                          <p className="font-semibold text-gray-900">
+                            {Array.isArray(profile.subjects)
+                              ? profile.subjects.join(', ')
+                              : profile.subjects}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {profile.session && (
+                      <div className="flex items-center gap-3 rounded-lg border border-purple-100 bg-white p-3">
+                        <Calendar className="h-5 w-5 shrink-0 text-purple-600" />
+                        <div className="min-w-0">
+                          <p className="text-xs text-gray-500">Session</p>
+                          <p className="truncate font-semibold text-gray-900">
+                            {profile.session}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
-                  <p
-                    className={`font-semibold ${
-                      isApproved
-                        ? 'text-green-700'
-                        : 'text-yellow-700'
-                    }`}
-                  >
-                    {isApproved
-                      ? 'Approved'
-                      : 'Pending Approval'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                {/* Open Schooling */}
+                {profile.category === 'open_schooling' && (
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {profile.level && (
+                      <div className="flex items-center gap-3 rounded-lg border border-purple-100 bg-white p-3">
+                        <GraduationCap className="h-5 w-5 shrink-0 text-purple-600" />
+                        <div className="min-w-0">
+                          <p className="text-xs text-gray-500">Level</p>
+                          <p className="truncate font-semibold text-gray-900">
+                            {profile.level}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {profile.stream && (
+                      <div className="flex items-center gap-3 rounded-lg border border-purple-100 bg-white p-3">
+                        <BookMarked className="h-5 w-5 shrink-0 text-purple-600" />
+                        <div className="min-w-0">
+                          <p className="text-xs text-gray-500">Stream</p>
+                          <p className="truncate font-semibold text-gray-900">
+                            {profile.stream}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {profile.subjects && profile.subjects.length > 0 && (
+                      <div className="flex items-start gap-3 rounded-lg border border-purple-100 bg-white p-3 sm:col-span-1 lg:col-span-1">
+                        <BookOpen className="mt-0.5 h-5 w-5 shrink-0 text-purple-600" />
+                        <div className="min-w-0">
+                          <p className="text-xs text-gray-500">Subjects</p>
+                          <p className="font-semibold text-gray-900">
+                            {Array.isArray(profile.subjects)
+                              ? profile.subjects.join(', ')
+                              : profile.subjects}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {profile.session && (
+                      <div className="flex items-center gap-3 rounded-lg border border-purple-100 bg-white p-3">
+                        <Calendar className="h-5 w-5 shrink-0 text-purple-600" />
+                        <div className="min-w-0">
+                          <p className="text-xs text-gray-500">Session</p>
+                          <p className="truncate font-semibold text-gray-900">
+                            {profile.session}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Computer Courses */}
+                {profile.category === 'computer_courses' && (
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {profile.computer_course && (
+                      <div className="flex items-center gap-3 rounded-lg border border-purple-100 bg-white p-3">
+                        <BookMarked className="h-5 w-5 shrink-0 text-purple-600" />
+                        <div className="min-w-0">
+                          <p className="text-xs text-gray-500">Course</p>
+                          <p className="truncate font-semibold text-gray-900">
+                            {profile.computer_course}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {profile.batch && (
+                      <div className="flex items-center gap-3 rounded-lg border border-purple-100 bg-white p-3">
+                        <Clock className="h-5 w-5 shrink-0 text-purple-600" />
+                        <div className="min-w-0">
+                          <p className="text-xs text-gray-500">Batch</p>
+                          <p className="truncate font-semibold text-gray-900">
+                            {profile.batch}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {profile.batch_timing && (
+                      <div className="flex items-center gap-3 rounded-lg border border-purple-100 bg-white p-3">
+                        <Clock className="h-5 w-5 shrink-0 text-purple-600" />
+                        <div className="min-w-0">
+                          <p className="text-xs text-gray-500">Batch Timing</p>
+                          <p className="truncate font-semibold text-gray-900">
+                            {profile.batch_timing}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {profile.duration && (
+                      <div className="flex items-center gap-3 rounded-lg border border-purple-100 bg-white p-3">
+                        <Calendar className="h-5 w-5 shrink-0 text-purple-600" />
+                        <div className="min-w-0">
+                          <p className="text-xs text-gray-500">Duration</p>
+                          <p className="truncate font-semibold text-gray-900">
+                            {profile.duration}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
         {/* =====================================================
             TABS
