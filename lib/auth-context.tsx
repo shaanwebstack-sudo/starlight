@@ -506,115 +506,84 @@ export function AuthProvider({
 
     /*
      * --------------------------------------------------------
-     * 3. Build legacy course value
+     * 3. Create student profile (basic info, no category yet)
      * --------------------------------------------------------
+     *
+     * The student will complete their course/category
+     * selection from the dashboard after logging in.
      */
-    let legacyCourse =
-      data.course?.trim() || '';
+    try {
+      const {
+        error: profileError,
+      } = await (supabase as any)
+        .from('student_profiles')
+        .insert([
+          {
+            user_id: authData.user.id,
+            full_name: data.full_name?.trim() || '',
+            email: normalizedEmail,
+            phone: data.phone?.trim() || null,
+            date_of_birth: data.date_of_birth || null,
+            parent_name: data.parent_name?.trim() || null,
+            parent_phone: data.parent_phone?.trim() || null,
+            address: data.address?.trim() || null,
+            is_approved: false,
+            is_active: false,
+          } as never,
+        ]);
 
-    if (
-      !legacyCourse &&
-      data.category
-    ) {
+      if (profileError) {
+        const msg = profileError.message || '';
+
+        if (
+          !msg.toLowerCase().includes('duplicate') &&
+          !msg.toLowerCase().includes('unique')
+        ) {
+          console.warn(
+            '[signUpStudent] student_profiles insert warning:',
+            profileError
+          );
+        }
+      }
+    } catch (err) {
+      const msg =
+        err instanceof Error ? err.message : String(err);
+
       if (
-        data.category ===
-          'government_exams' &&
-        data.exam
+        !msg.toLowerCase().includes('duplicate') &&
+        !msg.toLowerCase().includes('unique')
       ) {
-        legacyCourse = data.exam;
-      } else if (
-        data.category ===
-          'computer_courses' &&
-        data.computer_course
-      ) {
-        legacyCourse =
-          data.computer_course;
-      } else if (
-        data.category === 'nios' &&
-        data.level
-      ) {
-        legacyCourse =
-          `NIOS ${data.level}`;
-      } else if (
-        data.category ===
-          'open_schooling' &&
-        data.level
-      ) {
-        legacyCourse =
-          `Open Schooling ${data.level}`;
+        console.warn(
+          '[signUpStudent] student_profiles insert warning:',
+          msg
+        );
       }
     }
 
     /*
      * --------------------------------------------------------
-     * 4. Create pending admissions application
+     * 4. Create pending admissions application (basic info)
      * --------------------------------------------------------
+     *
+     * Category-specific fields are NOT included here because
+     * the student hasn't selected a course yet. The full
+     * admission with course details is created when the
+     * student completes their profile from the dashboard.
      */
     const {
       error: admError,
-    } = await supabase
+    } = await (supabase as any)
       .from('admissions')
       .insert([
         {
-          student_name:
-            data.full_name?.trim() || '',
-
+          student_name: data.full_name?.trim() || '',
           email: normalizedEmail,
-
-          phone:
-            data.phone?.trim() || null,
-
-          parent_name:
-            data.parent_name?.trim() || null,
-
-          parent_phone:
-            data.parent_phone?.trim() || null,
-
-          address:
-            data.address?.trim() || null,
-
-          date_of_birth:
-            data.date_of_birth || null,
-
-          course:
-            legacyCourse || null,
-
-          subjects:
-            data.subjects &&
-            data.subjects.length > 0
-              ? data.subjects
-              : null,
-
-          category:
-            data.category || null,
-
-          exam:
-            data.exam?.trim() || null,
-
-          level:
-            data.level?.trim() || null,
-
-          stream:
-            data.stream?.trim() || null,
-
-          session:
-            data.session?.trim() || null,
-
-          batch:
-            data.batch?.trim() || null,
-
-          batch_timing:
-            data.batch_timing?.trim() || null,
-
-          duration:
-            data.duration?.trim() || null,
-
-          computer_course:
-            data.computer_course?.trim() ||
-            null,
-
+          phone: data.phone?.trim() || null,
+          parent_name: data.parent_name?.trim() || null,
+          parent_phone: data.parent_phone?.trim() || null,
+          address: data.address?.trim() || null,
+          date_of_birth: data.date_of_birth || null,
           status: 'pending',
-
           message: null,
         } as never,
       ]);
@@ -624,12 +593,6 @@ export function AuthProvider({
         '[signUpStudent] admissions insert error:',
         admError
       );
-
-      /*
-       * Do not fail signup completely.
-       * The user can still login and the admin
-       * can create the application manually.
-       */
     }
   };
 

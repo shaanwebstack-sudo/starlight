@@ -59,6 +59,10 @@ import {
   StudentCategory,
 } from '@/lib/types';
 
+import DynamicCategoryForm, {
+  CompleteFormValue,
+} from '@/components/ui/dynamic-category-form';
+
 interface QuizAttempt {
   id: string;
   quiz_id: string;
@@ -84,6 +88,7 @@ export default function StudentDashboard() {
     profile,
     isLoading: authLoading,
     signOut,
+    refreshRoleAndProfile,
   } = useAuth();
 
   const supabase = useRef(createClient()).current;
@@ -96,6 +101,8 @@ export default function StudentDashboard() {
   const [quizSubjects, setQuizSubjects] = useState<QuizSubject[]>([]);
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [profileSubmitting, setProfileSubmitting] = useState(false);
+  const [showProfileForm, setShowProfileForm] = useState(false);
 
   /*
    * IMPORTANT:
@@ -349,6 +356,96 @@ export default function StudentDashboard() {
     }
   };
 
+  const handleProfileSubmit = async (data: CompleteFormValue) => {
+    if (!profile || !user) return;
+
+    setProfileSubmitting(true);
+
+    try {
+      const db = supabase as any;
+
+      const courseDisplay = (() => {
+        const parts: string[] = [];
+        if (data.category === 'government_exams') {
+          if (data.exam) parts.push(data.exam);
+        } else if (data.category === 'computer_courses') {
+          if (data.computer_course) parts.push(data.computer_course);
+        } else {
+          if (data.level) parts.push(data.level);
+          if (data.stream) parts.push(data.stream);
+        }
+        return parts.join(' - ');
+      })();
+
+      const { error: updateError } = await db
+        .from('student_profiles')
+        .update({
+          category: data.category || null,
+          exam: data.exam || null,
+          level: data.level || null,
+          stream: data.stream || null,
+          session: data.session || null,
+          batch: data.batch || null,
+          batch_timing: data.batch_timing || null,
+          duration: data.duration || null,
+          computer_course: data.computer_course || null,
+          course: courseDisplay || null,
+          subjects: data.subjects || [],
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', profile.id);
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+
+      const { error: admError } = await db.from('admissions').insert([{
+        student_name: profile.full_name || data.full_name,
+        email: user.email,
+        phone: profile.phone || data.phone || null,
+        parent_name: profile.parent_name || data.parent_name || null,
+        parent_phone: profile.parent_phone || data.parent_phone || null,
+        address: profile.address || data.address || null,
+        date_of_birth: profile.date_of_birth || data.date_of_birth || null,
+        course: courseDisplay || null,
+        category: data.category || null,
+        exam: data.exam || null,
+        level: data.level || null,
+        stream: data.stream || null,
+        session: data.session || null,
+        batch: data.batch || null,
+        batch_timing: data.batch_timing || null,
+        duration: data.duration || null,
+        computer_course: data.computer_course || null,
+        subjects: data.subjects || null,
+        status: 'pending',
+        student_profile_id: profile.id,
+      } as never]);
+
+      if (admError) {
+        console.error('Admission insert error:', admError);
+      }
+
+      toast({
+        title: 'Profile Updated',
+        description:
+          'Your course selection has been submitted. An admin will review your application.',
+      });
+
+      setShowProfileForm(false);
+      await refreshRoleAndProfile();
+    } catch (error) {
+      console.error('Profile update error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update profile. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setProfileSubmitting(false);
+    }
+  };
+
   /*
    * Loading state
    */
@@ -493,6 +590,88 @@ export default function StudentDashboard() {
       </header>
 
       <main className="mx-auto max-w-7xl min-w-0 space-y-6 px-3 py-6 sm:px-4 sm:py-8 lg:px-8">
+
+        {/* =====================================================
+            PROFILE COMPLETION (Course Selection)
+        ====================================================== */}
+
+        {profile && !profile.category && !showProfileForm && (
+          <Card className="overflow-hidden border-blue-200 bg-gradient-to-r from-blue-50 via-white to-yellow-50 shadow-sm">
+            <div className="h-1.5 bg-gradient-to-r from-blue-500 via-yellow-400 to-red-500" />
+            <CardContent className="p-5 sm:p-6">
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-blue-100">
+                  <BookOpen className="h-7 w-7 text-blue-600" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-lg font-bold text-gray-900 sm:text-xl">
+                      Complete Your Profile
+                    </h2>
+                    <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+                      Action Required
+                    </Badge>
+                  </div>
+                  <p className="mt-1 text-sm leading-6 text-gray-600">
+                    Please select your course and category to complete your
+                    registration. This will submit your application for admin
+                    approval.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => setShowProfileForm(true)}
+                  className="shrink-0 bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  Select Course
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {profile && !profile.category && showProfileForm && (
+          <Card className="border-blue-100 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-blue-900">
+                <BookOpen className="h-5 w-5" />
+                Select Your Course
+              </CardTitle>
+              <CardDescription>
+                Choose your course category and fill in the details to submit your application.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DynamicCategoryForm
+                mode="admin-create"
+                initialData={{
+                  full_name: profile.full_name || '',
+                  email: profile.email || user?.email || '',
+                  phone: profile.phone || '',
+                  date_of_birth: profile.date_of_birth || '',
+                  parent_name: profile.parent_name || '',
+                  parent_phone: profile.parent_phone || '',
+                  address: profile.address || '',
+                }}
+                onSubmit={handleProfileSubmit}
+                isLoading={profileSubmitting}
+                submitLabel="Submit Application"
+                courses={courses}
+                includeSubjectsFor
+                compact
+              />
+              <div className="mt-4 flex justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowProfileForm(false)}
+                  disabled={profileSubmitting}
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* =====================================================
             APPROVAL STATUS

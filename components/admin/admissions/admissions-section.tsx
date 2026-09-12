@@ -277,7 +277,7 @@ export default function AdmissionsSection() {
     if (!selectedAdmission) return undefined;
     const a = selectedAdmission;
     return {
-      category: a.category || '',
+      category: (a.category as StudentCategory) || '',
       full_name: a.student_name || '',
       email: a.email || '',
       phone: a.phone || '',
