@@ -9,7 +9,6 @@ import CoursesSection from "./courses/courses-section";
 import { BlogCMS } from "./blog/blog-cms";
 import NoticesSection from "./notices/notices-section";
 import StudentsSection from "./students/students-section";
-import AdmissionsSection from "./admissions/admissions-section";
 import ContactSection from "./contact/contact-section";
 import { GallerySection } from "./gallery/gallery-section";
 
@@ -31,7 +30,6 @@ export default function AdminDashboard() {
         {activeTab === "blogs" && <BlogCMS />}
         {activeTab === "notices" && <NoticesSection />}
         {activeTab === "students" && <StudentsSection />}
-        {activeTab === "admissions" && <AdmissionsSection />}
         {activeTab === "contact" && <ContactSection />}
         {activeTab === "gallery" && <GallerySection />}
      

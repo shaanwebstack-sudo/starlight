@@ -403,7 +403,7 @@ export default function StudentDashboard() {
         student_name: profile.full_name || data.full_name,
         email: user.email,
         phone: profile.phone || data.phone || null,
-        parent_name: profile.parent_name || data.parent_name || null,
+        parent_name: profile.father_guardian_name || data.parent_name || null,
         parent_phone: profile.parent_phone || data.parent_phone || null,
         address: profile.address || data.address || null,
         date_of_birth: profile.date_of_birth || data.date_of_birth || null,
@@ -648,7 +648,7 @@ export default function StudentDashboard() {
                   email: profile.email || user?.email || '',
                   phone: profile.phone || '',
                   date_of_birth: profile.date_of_birth || '',
-                  parent_name: profile.parent_name || '',
+                  parent_name: profile.father_guardian_name || '',
                   parent_phone: profile.parent_phone || '',
                   address: profile.address || '',
                 }}
@@ -888,7 +888,7 @@ export default function StudentDashboard() {
                   </div>
                 )}
                 {/* Parent Name */}
-                {profile.parent_name && (
+                {profile.father_guardian_name && (
                   <div className="flex items-center gap-3 rounded-lg border border-blue-50 bg-blue-50/40 p-3">
                     <ShieldCheck className="h-5 w-5 shrink-0 text-blue-600" />
                     <div className="min-w-0">
@@ -896,7 +896,7 @@ export default function StudentDashboard() {
                         Father's / Guardian's Name
                       </p>
                       <p className="truncate font-semibold text-gray-900">
-                        {profile.parent_name}
+                        {profile.father_guardian_name}
                       </p>
                     </div>
                   </div>

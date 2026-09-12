@@ -487,7 +487,7 @@ export default function StudentsSection() {
       email: s.email || '',
       phone: s.phone || '',
       date_of_birth: s.date_of_birth || '',
-      parent_name: s.parent_name || '',
+      parent_name: s.father_guardian_name || '',
       parent_phone: s.parent_phone || '',
       address: s.address || '',
       exam: s.exam || '',
@@ -534,7 +534,7 @@ export default function StudentsSection() {
         duration: data.duration || null,
         computer_course: data.computer_course || null,
         date_of_birth: data.date_of_birth || null,
-        parent_name: data.parent_name || null,
+        father_guardian_name: data.parent_name || null,
         parent_phone: data.parent_phone || null,
         address: data.address || null,
         subjects: data.subjects || [],
@@ -612,7 +612,7 @@ export default function StudentsSection() {
         duration: data.duration || null,
         computer_course: data.computer_course || null,
         date_of_birth: data.date_of_birth || null,
-        parent_name: data.parent_name || null,
+        father_guardian_name: data.parent_name || null,
         parent_phone: data.parent_phone || null,
         address: data.address || null,
         subjects: data.subjects || [],
@@ -1061,7 +1061,7 @@ export default function StudentsSection() {
                         Parent / Guardian Name
                       </p>
                       <p className="mt-1 text-sm text-gray-900">
-                        {selectedStudent.parent_name || '—'}
+                        {selectedStudent.father_guardian_name || '—'}
                       </p>
                     </div>
                     <div>

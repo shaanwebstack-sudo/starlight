@@ -215,7 +215,7 @@ export type StudentProfile = {
   batch_timing: string | null;
   duration: string | null;
   computer_course: string | null;
-  parent_name: string | null;
+  father_guardian_name: string | null;
   parent_phone: string | null;
   date_of_birth: string | null;
   application_id: string | null;

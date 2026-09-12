@@ -8,7 +8,6 @@ const tabs = [
   "blogs",
   "notices",
   "students",
-  "admissions",
   "contact",
   "gallery",
   "library",
