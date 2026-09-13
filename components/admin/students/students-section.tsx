@@ -511,7 +511,7 @@ export default function StudentsSection() {
     try {
       setSubmitting(true);
 
-      const emailToUse = addEmail || data.email;
+      const emailToUse = data.email;
       if (!emailToUse) {
         toast.error('Email is required');
         return;
@@ -594,7 +594,7 @@ export default function StudentsSection() {
     if (!selectedStudent) return;
     try {
       setSubmitting(true);
-      const emailToUse = editEmail || data.email;
+      const emailToUse = data.email;
       const courseDisplay = getCourseDisplayFromForm(data);
 
       await updateStudentProfile(selectedStudent.id, {
@@ -918,21 +918,6 @@ export default function StudentsSection() {
           </DialogHeader>
 
           <div className="space-y-5 py-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="add-email-top">Student Email *</Label>
-              <Input
-                id="add-email-top"
-                type="email"
-                placeholder="student@example.com"
-                value={addEmail}
-                onChange={(e) => setAddEmail(e.target.value)}
-                className="h-11 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Email address for student login and communications
-              </p>
-            </div>
-
             <DynamicCategoryForm
               mode="admin-create"
               onSubmit={handleAddSubmit}
@@ -965,18 +950,6 @@ export default function StudentsSection() {
 
           {selectedStudent && (
             <div className="space-y-5 py-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-email-top">Student Email *</Label>
-                <Input
-                  id="edit-email-top"
-                  type="email"
-                  placeholder="student@example.com"
-                  value={editEmail}
-                  onChange={(e) => setEditEmail(e.target.value)}
-                  className="h-11 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-
               <DynamicCategoryForm
                 mode="admin-edit"
                 initialData={buildInitialData(selectedStudent)}
