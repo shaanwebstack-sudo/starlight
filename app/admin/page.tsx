@@ -1203,9 +1203,6 @@ if (authLoading || isLoading) {
             <TabsTrigger value="students" className="shrink-0 gap-1.5 whitespace-nowrap px-2 py-1.5 text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white sm:px-3 sm:text-sm">
               <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Students <span className="ml-1 rounded-full bg-white/20 px-1.5 text-[10px] sm:text-xs">{students.length}</span>
             </TabsTrigger>
-            <TabsTrigger value="admissions" className="shrink-0 gap-1.5 whitespace-nowrap px-2 py-1.5 text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white sm:px-3 sm:text-sm">
-              <ClipboardList className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Admissions <span className="ml-1 rounded-full bg-white/20 px-1.5 text-[10px] sm:text-xs">{admissions.length}</span>
-            </TabsTrigger>
             <TabsTrigger value="leads" className="shrink-0 gap-1.5 whitespace-nowrap px-2 py-1.5 text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white sm:px-3 sm:text-sm">
               <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Contact <span className="ml-1 rounded-full bg-white/20 px-1.5 text-[10px] sm:text-xs">{leads.length}</span>
             </TabsTrigger>
