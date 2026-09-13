@@ -32,6 +32,7 @@ import {
   BATCHES,
   BATCH_TIMINGS,
   COMPUTER_DURATIONS,
+  COMPUTER_COURSES,
   Course,
 } from '@/lib/types';
 
@@ -73,9 +74,7 @@ export interface CompleteFormValue
   course: string;
 
   /*
-   * Enrollment number is only used for:
-   * - NIOS
-   * - Open Schooling
+   * Enrollment number is only used for NIOS.
    */
   enrollment_number: string;
 
@@ -139,7 +138,7 @@ const DEFAULT_FORM: CompleteFormValue = {
   course: '',
 
   /*
-   * Only used for NIOS/Open Schooling
+   * Only used for NIOS
    */
   enrollment_number: '',
 
@@ -203,12 +202,11 @@ export default function DynamicCategoryForm({
 
   /* =======================================================
      HELPER:
-     ENROLLMENT REQUIRED ONLY FOR NIOS / OPEN SCHOOLING
+     ENROLLMENT REQUIRED ONLY FOR NIOS
   ======================================================= */
 
   const enrollmentRequired =
-    form.category === 'nios' ||
-    form.category === 'open_schooling';
+    form.category === 'nios';
 
   /* =======================================================
      LOAD INITIAL DATA
@@ -224,11 +222,10 @@ export default function DynamicCategoryForm({
 
     /*
      * Only keep enrollment number when
-     * category is NIOS or Open Schooling.
+     * category is NIOS.
      */
     const initialEnrollment =
-      initialCategory === 'nios' ||
-      initialCategory === 'open_schooling'
+      initialCategory === 'nios'
         ? initialData.enrollment_number || ''
         : '';
 
@@ -335,13 +332,10 @@ export default function DynamicCategoryForm({
       selectedCourse?.category || '';
 
     /*
-     * Enrollment number is ONLY allowed for:
-     * - NIOS
-     * - Open Schooling
+     * Enrollment number is ONLY allowed for NIOS.
      */
     const shouldKeepEnrollment =
-      selectedCategory === 'nios' ||
-      selectedCategory === 'open_schooling';
+      selectedCategory === 'nios';
 
     setForm((prev) => ({
       ...prev,
@@ -492,8 +486,7 @@ export default function DynamicCategoryForm({
     }
 
     /*
-     * Enrollment number is mandatory ONLY for:
-     * NIOS / Open Schooling
+     * Enrollment number is mandatory ONLY for NIOS.
      */
     if (
       enrollmentRequired &&
@@ -503,7 +496,7 @@ export default function DynamicCategoryForm({
     }
 
     /*
-     * For Government Exams and Computer Courses,
+     * For non-NIOS categories,
      * always send an empty enrollment number.
      */
     const finalEnrollment =
@@ -1293,13 +1286,6 @@ export default function DynamicCategoryForm({
             <div
               className={`grid gap-4 ${fieldGrid}`}
             >
-              {/* ENROLLMENT */}
-
-              <InfoRow
-                label="Enrollment Number"
-                value={form.enrollment_number}
-              />
-
               {/* LEVEL */}
 
               <InfoRow
@@ -1335,34 +1321,6 @@ export default function DynamicCategoryForm({
             <div
               className={`grid gap-4 ${fieldGrid}`}
             >
-              {/* ENROLLMENT NUMBER */}
-
-              <div className="space-y-1.5">
-                <Label htmlFor="enrollment_number_open">
-                  Enrollment Number *
-                </Label>
-
-                <Input
-                  id="enrollment_number_open"
-                  placeholder="Enter enrollment number"
-                  required
-                  value={
-                    form.enrollment_number
-                  }
-                  onChange={(e) =>
-                    updateField(
-                      'enrollment_number',
-                      e.target.value
-                    )
-                  }
-                  className="h-11 rounded-xl border-gray-200"
-                />
-
-                <p className="text-xs text-gray-500">
-                  Enter the student's enrollment number.
-                </p>
-              </div>
-
               {/* LEVEL */}
 
               <div className="space-y-1.5">
@@ -1555,18 +1513,42 @@ export default function DynamicCategoryForm({
             <div
               className={`grid gap-4 ${fieldGrid}`}
             >
-              {/* SELECTED COURSE */}
+              {/* COMPUTER COURSE */}
 
               <div className="space-y-1.5">
-                <Label>
-                  Selected Course
+                <Label htmlFor="computer_course_select">
+                  Computer Course
                 </Label>
 
-                <Input
-                  value={form.course}
-                  readOnly
-                  className="h-11 rounded-xl border-gray-200 bg-gray-50"
-                />
+                <Select
+                  value={form.computer_course || ''}
+                  onValueChange={(value) =>
+                    updateField(
+                      'computer_course',
+                      value
+                    )
+                  }
+                >
+                  <SelectTrigger
+                    id="computer_course_select"
+                    className="h-11 rounded-xl border-gray-200"
+                  >
+                    <SelectValue placeholder="Select computer course" />
+                  </SelectTrigger>
+
+                  <SelectContent>
+                    {COMPUTER_COURSES.map(
+                      (course) => (
+                        <SelectItem
+                          key={course}
+                          value={course}
+                        >
+                          {course}
+                        </SelectItem>
+                      )
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* BATCH */}

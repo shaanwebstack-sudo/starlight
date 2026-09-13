@@ -13,17 +13,17 @@ export const CATEGORY_LABELS: Record<StudentCategory, string> = {
 
 export const GOVERNMENT_EXAMS: string[] = [
   'SSC',
-  'CGL',
-  'CHSL',
+  'SSC CGL',
+  'SSC CHSL',
   'Delhi Police',
   'Constable',
   'Head Constable',
-  'MTS/GD',
-  'Bank',
+  'MTS / GD',
+  'CPO',
+  'Banking',
   'CLAT',
   'NDA',
   'CUET',
-  'CPO',
   'CTET',
   'DSSSB',
   'PRT',
@@ -32,7 +32,18 @@ export const GOVERNMENT_EXAMS: string[] = [
   'KVS',
   'NVS',
   'D.El.Ed',
-  'B.Ed.',
+  'B.Ed',
+  'Class 11th',
+  'Class 12th',
+];
+
+export const COMPUTER_COURSES: string[] = [
+  'Basic Computer',
+  'Advanced Computer',
+  'Web Designing',
+  'Python Programming',
+  'AI Tools & Prompt Engineering',
+  'Full Stack Web Development',
 ];
 
 export const NIOS_LEVELS: string[] = ['10th', '12th'];
