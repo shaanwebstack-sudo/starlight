@@ -68,27 +68,82 @@ export default function UsersSection() {
   const loadUsers = useCallback(async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await (supabase as any)
-        .rpc('get_all_users');
+      // Attempt 1: Use the get_all_users() RPC function (returns email + name from auth.users)
+      let rows: UserRow[] = [];
+      let rpcFailed = false;
+      try {
+        const { data, error } = await (supabase as any)
+          .rpc('get_all_users');
 
-      if (error) throw error;
+        if (error) {
+          console.warn('get_all_users RPC failed, falling back to direct query:', error);
+          rpcFailed = true;
+        } else {
+          rows = (data || []).map((r: any) => ({
+            id: r.user_id,
+            user_id: r.user_id,
+            email: r.email || '',
+            full_name: r.full_name || '',
+            role: r.role,
+            is_approved: r.is_approved ?? false,
+            created_at: r.created_at,
+          }));
+        }
+      } catch (rpcErr) {
+        console.warn('get_all_users RPC exception, falling back:', rpcErr);
+        rpcFailed = true;
+      }
 
-      const rows: UserRow[] = (data || []).map((r: any) => ({
-        id: r.user_id,
-        user_id: r.user_id,
-        email: r.email || '',
-        full_name: r.full_name || '',
-        role: r.role,
-        is_approved: r.is_approved ?? false,
-        created_at: r.created_at,
-      }));
+      // Attempt 2: Fallback — direct query if RPC missing / failed.
+      // Pulls names/emails from student_profiles (admins without a
+      // profile rows fall back to empty email/name.
+      if (rpcFailed) {
+        const {
+          data: rolesData,
+          error: rolesError,
+        } = await (supabase as any)
+          .from('user_roles')
+          .select(`
+            *,
+            student_profiles (
+              email,
+              full_name,
+              is_approved
+            )
+          `)
+          .order('created_at', { ascending: false });
+
+        if (rolesError) throw rolesError;
+
+        rows = (rolesData || []).map((r: any) => {
+          const profile = Array.isArray(r.student_profiles)
+            ? r.student_profiles[0]
+            : r.student_profiles;
+          const email = profile?.email || '';
+          const full_name = profile?.full_name || '';
+          const is_approved =
+            profile?.is_approved ?? r.role === 'admin';
+          return {
+            id: r.user_id,
+            user_id: r.user_id,
+            email,
+            full_name,
+            role: r.role,
+            is_approved,
+            created_at: r.created_at,
+          };
+        });
+      }
 
       setUsers(rows);
     } catch (error) {
       console.error('Error loading users:', error);
       toast({
         title: 'Error',
-        description: 'Failed to load users.',
+        description:
+          error instanceof Error
+            ? `Failed to load users: ${error.message}`
+            : 'Failed to load users.',
         variant: 'destructive',
       });
     } finally {

@@ -82,19 +82,17 @@ export default function Footer() {
 
                   <div>
                     <h3 className="text-xl font-bold text-white">
-                      Starlight 
+                      Starlight
                     </h3>
 
-                    <p className="text-sm text-slate-400">
-                      Academy
-                    </p>
+                    <p className="text-sm text-slate-400">Academy</p>
                   </div>
                 </div>
 
                 <p className="max-w-sm text-sm leading-7 text-slate-300">
                   Empowering students through quality education, expert
-                  mentorship, NIOS admissions, coaching programs, and academic
-                  excellence since 2001.
+                  mentorship, NIOS admissions, coaching programs, computer
+                  courses, and academic excellence.
                 </p>
 
                 {/* Social Icons */}
@@ -115,21 +113,27 @@ export default function Footer() {
                     <Instagram size={18} />
                   </a>
 
-                  {/* <a
+                  {/* LinkedIn */}
+                  {/* 
+                  <a
                     href="#"
                     aria-label="LinkedIn"
                     className="rounded-xl border border-slate-800 bg-slate-900 p-3 transition-all duration-300 hover:border-blue-500 hover:bg-blue-600"
                   >
                     <Linkedin size={18} />
-                  </a> */}
+                  </a>
+                  */}
 
-                  {/* <a
+                  {/* Justdial */}
+                  {/*
+                  <a
                     href="#"
                     aria-label="Justdial"
                     className="rounded-xl border border-slate-800 bg-slate-900 p-3 transition-all duration-300 hover:border-green-500 hover:bg-green-600"
                   >
                     <JustdialIcon size={18} />
-                  </a> */}
+                  </a>
+                  */}
                 </div>
               </div>
 
@@ -170,47 +174,71 @@ export default function Footer() {
                 <div className="mb-6 h-1 w-12 rounded-full bg-gradient-to-r from-red-500 to-blue-500" />
 
                 <ul className="space-y-4">
+                  {/* Address */}
                   <li className="flex gap-3 rounded-2xl border border-slate-800 bg-slate-900/50 p-4">
                     <MapPin className="mt-1 h-5 w-5 shrink-0 text-red-500" />
 
                     <span className="text-sm leading-6 text-slate-300">
                       Starlight Academy
                       <br />
-                      A-309, 2nd Floor
+                      VPO, Opposite McD Dispensary
                       <br />
-                      Landmark Vijay Vihar Petrol Pump & Mount Abu Junior School
+                      Near Main Bus Stand
                       <br />
-                      Sector-4, Rohini
+                      Karala Village, Karala
                       <br />
-                      Delhi-85
+                      New Delhi, Delhi - 110081
                     </span>
                   </li>
 
+                  {/* Phone 1 */}
                   <li className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/50 p-4">
-                    <Phone className="h-5 w-5 text-blue-400" />
+                    <Phone className="h-5 w-5 shrink-0 text-blue-400" />
 
                     <a
-                      href="tel:+919212644428"
+                      href="tel:+918750123355"
                       className="text-sm text-slate-300 transition hover:text-blue-400"
                     >
-                      +91 92126 44428
+                      +91 87501 23355
                     </a>
                   </li>
 
+                  {/* Phone 2 */}
                   <li className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/50 p-4">
-                    <MessageCircle className="h-5 w-5 text-green-400" />
+                    <Phone className="h-5 w-5 shrink-0 text-blue-400" />
 
-                    <span className="text-sm text-slate-300">
-                      WhatsApp Support Available
-                    </span>
+                    <a
+                      href="tel:+919899777089"
+                      className="text-sm text-slate-300 transition hover:text-blue-400"
+                    >
+                      +91 98997 77089
+                    </a>
                   </li>
 
+                  {/* WhatsApp */}
                   <li className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/50 p-4">
-                    <Mail className="h-5 w-5 text-red-400" />
+                    <MessageCircle className="h-5 w-5 shrink-0 text-green-400" />
 
-                    <span className="text-sm text-slate-300 break-all">
-                      vihaaneducationacademy@gmail.com
-                    </span>
+                    <a
+                      href="https://wa.me/918750123355"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-slate-300 transition hover:text-green-400"
+                    >
+                      WhatsApp Support Available
+                    </a>
+                  </li>
+
+                  {/* Email */}
+                  <li className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/50 p-4">
+                    <Mail className="h-5 w-5 shrink-0 text-red-400" />
+
+                    <a
+                      href="mailto:starlightacademy.info@gmail.com"
+                      className="break-all text-sm text-slate-300 transition hover:text-red-400"
+                    >
+                      starlightacademy.info@gmail.com
+                    </a>
                   </li>
                 </ul>
               </div>
@@ -260,19 +288,20 @@ export default function Footer() {
                   </h4>
 
                   <p className="mt-2 text-sm text-slate-400">
-                    Rohini, New Delhi
+                    Karala, New Delhi
                   </p>
                 </div>
 
                 <div className="h-[320px] w-full">
                   <iframe
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d218.70294315081043!2d77.10189916194851!3d28.7121608012656!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390d06ae769c788f%3A0xac313f49064bf5d9!2sVIHAAN%20EDUCATION%20ACADEMY!5e0!3m2!1sen!2sin!4v1779955985930!5m2!1sen!2sin"
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d447820.62371742196!2d76.47651672363281!3d28.73153893866631!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390d07e72b8f8351%3A0x101e14edd5d95289!2sStarlight%20Academy!5e0!3m2!1sen!2sin!4v1789370700865!5m2!1sen!2sin"
                     width="100%"
                     height="100%"
                     style={{ border: 0 }}
                     allowFullScreen
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
+                    title="Starlight Academy Location"
                   />
                 </div>
               </div>

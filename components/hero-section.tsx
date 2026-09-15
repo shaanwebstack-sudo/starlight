@@ -54,7 +54,7 @@ export function HeroSection() {
             </h1>
 
             <p className="mt-4 sm:mt-8 max-w-2xl text-base sm:text-lg leading-relaxed sm:leading-8 text-slate-600">
-              Starlight Academy provides quality education, expert coaching, personalized mentorship, and a modern study environment for students. Whether you are preparing for school exams, competitive exams, or looking for a peaceful library space to focus on your goals, we help you succeed with the right guidance and resources.
+              Starlight Academy provides quality education, expert coaching, personalized mentorship, and a modern study environment for students. Whether you are preparing for school exams, competitive exams, or looking for a peaceful environment to focus on your goals, we help you succeed with the right guidance and resources.
             </p>
 
             {/* CTA Buttons */}
@@ -144,7 +144,7 @@ export function HeroSection() {
 
                   <div className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 sm:px-4 sm:py-2 backdrop-blur-lg text-xs sm:text-sm">
                     <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-400" />
-                    Admissions & Library Membership Open
+                    Admissions Open
                   </div>
 
                   <h3 className="mt-2 sm:mt-4 text-xl sm:text-3xl lg:text-4xl font-bold">
@@ -152,7 +152,7 @@ export function HeroSection() {
                   </h3>
 
                   <p className="mt-2 sm:mt-3 text-xs sm:text-base text-white/90">
-                    Expert Coaching • Modern Library • Academic Excellence
+                    Expert Coaching • Academic Excellence
                   </p>
                 </div>
               </div>
@@ -197,7 +197,7 @@ export function HeroSection() {
                     Modern
                   </p>
                   <p className="text-xs text-slate-500">
-                    Library Facility
+                    Study Environment
                   </p>
                 </div>
               </CardContent>

@@ -1037,15 +1037,51 @@ const handleViewAdmission = (admission: any) => {
   const handleDelete = async () => {
     if (!deleteId || !deleteType) return;
     try {
-      const { error } = await (supabase.from(deleteType) as any).delete().eq('id', deleteId);
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!session) {
+        throw new Error(
+          'You are not logged in. Please login again to delete items.'
+        );
+      }
+
+      const { data, error, status, statusText } = await (supabase
+        .from(deleteType) as any)
+        .delete({ count: 'exact' })
+        .eq('id', deleteId)
+        .select();
+
       if (error) throw error;
-      toast({ title: 'Success', description: 'Item deleted' });
+      const deletedCount: number = Array.isArray(data) ? data.length : 0;
+      if (deletedCount === 0) {
+        console.warn(
+          `[handleDelete] No row deleted for ${deleteType} id=${deleteId} status=${status} statusText=${statusText}`
+        );
+        throw new Error(
+          'No row was deleted. The record may not exist or you may not have permission.'
+        );
+      }
+
+      toast({
+        title: 'Success',
+        description: `${deletedCount} item deleted.`,
+      });
       setDeleteId(null);
       setDeleteType(null);
       setShowDeleteDialog(false);
-      loadData();
+      await loadData();
     } catch (error) {
-      toast({ title: 'Error', description: 'Failed to delete', variant: 'destructive' });
+      const message =
+        error instanceof Error ? error.message : 'Failed to delete';
+      console.error(`[handleDelete] ${deleteType} id=${deleteId}:`, error);
+      toast({
+        title: 'Error',
+        description: message,
+        variant: 'destructive',
+      });
     }
   };
 

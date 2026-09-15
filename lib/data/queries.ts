@@ -176,12 +176,9 @@ export async function fetchStudentProfiles(
         ascending: false,
       });
 
-    const isApproved =
-      filters?.is_approved !== undefined
-        ? filters.is_approved
-        : true;
-
-    query = query.eq("is_approved", isApproved);
+    if (filters?.is_approved !== undefined) {
+      query = query.eq("is_approved", filters.is_approved);
+    }
 
     if (filters?.is_active !== undefined) {
       query = query.eq("is_active", filters.is_active);

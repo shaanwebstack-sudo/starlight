@@ -20,19 +20,19 @@ const testimonials = [
   {
     name: "Rahul Sharma",
     course: "NIOS Class 10",
-    content: "Vihaan Academy helped me clear my NIOS exams with excellent marks. The teachers are very supportive.",
+    content: "Starlight Academy helped me clear my NIOS exams with excellent marks. The teachers are very supportive.",
     rating: 5,
   },
   {
     name: "Priya Singh",
     course: "Foundation Course",
-    content: "Amazing library facilities and great teaching. The study environment is perfect for learning.",
+    content: "Amazing  facilities and great teaching. The study environment is perfect for learning.",
     rating: 5,
   },
   {
     name: "Amit Kumar",
     course: "NIOS Class 12",
-    content: "Thank you Vihaan Academy for guiding me throughout my Class 12 journey. Highly recommended!",
+    content: "Thank you Starlight Academy for guiding me throughout my Class 12 journey. Highly recommended!",
     rating: 5,
   },
 ];
@@ -45,8 +45,8 @@ const features = [
   },
   {
     icon: <BookOpen className="h-6 w-6" />,
-    title: "Comprehensive Library",
-    description: "Well-stocked library with all study materials and books",
+    title: "Modern Study Environment",
+    description: "Modern study environment with all study materials and books",
   },
   {
     icon: <Trophy className="h-6 w-6" />,

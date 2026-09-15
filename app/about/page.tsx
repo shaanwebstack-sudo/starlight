@@ -164,7 +164,7 @@ export default function AboutPage() {
         'Experienced educator with academic expertise across English, Hindi, Mathematics, Science and Education.',
     },
     {
-      name: 'Dr. P. Singh Sir',
+      name: 'Dr. P.K Singh Sir',
       role: 'Faculty',
       description:
         'Experienced educator with academic expertise in Mathematics, Education and related subjects.',

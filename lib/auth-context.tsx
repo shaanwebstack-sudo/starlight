@@ -41,7 +41,7 @@ export interface StudentProfile {
   batch_timing: string | null;
   duration: string | null;
   computer_course: string | null;
-  father_guardian_name: string | null;
+  parent_name: string | null;
   parent_phone: string | null;
   date_of_birth: string | null;
   application_id: string | null;
@@ -524,7 +524,7 @@ export function AuthProvider({
             email: normalizedEmail,
             phone: data.phone?.trim() || null,
             date_of_birth: data.date_of_birth || null,
-            father_guardian_name: data.parent_name?.trim() || null,
+            parent_name: data.parent_name?.trim() || null,
             parent_phone: data.parent_phone?.trim() || null,
             address: data.address?.trim() || null,
             is_approved: false,
